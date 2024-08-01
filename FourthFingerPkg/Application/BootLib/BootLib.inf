@@ -1,0 +1,22 @@
+[Defines]
+  INF_VERSION = 0x00010005
+  BASE_NAME = FourthFingerPkg
+  FILE_GUID = 13b29ed2-d194-40f3-b105-77ee2d199dc5
+  MODULE_TYPE = UEFI_APPLICATION
+  ENTRY_POINT = UefiMain
+  UEFI_SPECIFICATION_VERSION = 0x00020014
+
+[Sources]
+  status_lib.h
+  entry_point.c
+  system_table_lib.c
+  time_lib.c
+  memory_lib/memory_lib.c
+  memory_lib/efi_memory_type.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiApplicationEntryPoint
+  UefiLib
