@@ -490,7 +490,7 @@
   "file": "/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Library/BasePcdLibNull/PcdLib.c"
  },
  {
-  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/MdePkg/Library/BasePcdLibNull/BasePcdLibNull",
+  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib",
   "arguments": [
    "gcc",
    "-MMD",
@@ -736,7 +736,7 @@
   "file": "/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Library/BaseMemoryLib/CopyMem.c"
  },
  {
-  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/MdePkg/Library/BaseLib/BaseLib",
+  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/MdePkg/Library/BaseMemoryLib/BaseMemoryLib",
   "arguments": [
    "gcc",
    "-MMD",
@@ -933,7 +933,7 @@
   "file": "/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Library/BaseMemoryLib/CopyMemWrapper.c"
  },
  {
-  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/MdePkg/Library/BaseMemoryLib/BaseMemoryLib",
+  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib",
   "arguments": [
    "gcc",
    "-MMD",
@@ -1279,7 +1279,7 @@
   "file": "/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Library/BaseLib/Cpu.c"
  },
  {
-  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib",
+  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib",
   "arguments": [
    "gcc",
    "-MMD",
@@ -2563,7 +2563,7 @@
   "file": "/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Library/BaseLib/HighBitSet64.c"
  },
  {
-  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib",
+  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint",
   "arguments": [
    "gcc",
    "-MMD",
@@ -3012,7 +3012,7 @@
   "file": "/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Library/BaseLib/Math64.c"
  },
  {
-  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/MdePkg/Library/UefiLib/UefiLib",
+  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint",
   "arguments": [
    "gcc",
    "-MMD",
@@ -5060,5 +5060,105 @@
    "/home/alexanderjohnston/Documents/programs/edk2/FourthFingerPkg/Application/BootLib/time_lib.c"
   ],
   "file": "/home/alexanderjohnston/Documents/programs/edk2/FourthFingerPkg/Application/BootLib/time_lib.c"
+ },
+ {
+  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg/Application/BootLib/BootLib",
+  "arguments": [
+   "gcc",
+   "-MMD",
+   "-MF",
+   "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg/Application/BootLib/BootLib/OUTPUT/status_lib.obj.deps",
+   "-g",
+   "-Os",
+   "-fshort-wchar",
+   "-fno-builtin",
+   "-fno-strict-aliasing",
+   "-Wall",
+   "-Werror",
+   "-Wno-array-bounds",
+   "-include",
+   "AutoGen.h",
+   "-fno-common",
+   "-ffunction-sections",
+   "-fdata-sections",
+   "-DSTRING_ARRAY_NAME=FourthFingerPkgStrings",
+   "-m64",
+   "-fno-stack-protector",
+   "-DEFIAPI=__attribute__((ms_abi))",
+   "-maccumulate-outgoing-args",
+   "-mno-red-zone",
+   "-Wno-address",
+   "-mcmodel=small",
+   "-fpie",
+   "-fno-asynchronous-unwind-tables",
+   "-Wno-address",
+   "-fno-omit-frame-pointer",
+   "-flto",
+   "-DUSING_LTO",
+   "-c",
+   "-o",
+   "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg/Application/BootLib/BootLib/OUTPUT/./status_lib.obj",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/FourthFingerPkg/Application/BootLib/memory_lib",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/FourthFingerPkg/Application/BootLib",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg/Application/BootLib/BootLib/DEBUG",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/MdePkg",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Include",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Test/UnitTest/Include",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Test/Mock/Include",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Library/MipiSysTLib/mipisyst/library/include",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Include/X64",
+   "/home/alexanderjohnston/Documents/programs/edk2/FourthFingerPkg/Application/BootLib/status_lib.c"
+  ],
+  "file": "/home/alexanderjohnston/Documents/programs/edk2/FourthFingerPkg/Application/BootLib/status_lib.c"
+ },
+ {
+  "directory": "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg/Application/BootLib/BootLib",
+  "arguments": [
+   "gcc",
+   "-MMD",
+   "-MF",
+   "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg/Application/BootLib/BootLib/OUTPUT/text_input_lib.obj.deps",
+   "-g",
+   "-Os",
+   "-fshort-wchar",
+   "-fno-builtin",
+   "-fno-strict-aliasing",
+   "-Wall",
+   "-Werror",
+   "-Wno-array-bounds",
+   "-include",
+   "AutoGen.h",
+   "-fno-common",
+   "-ffunction-sections",
+   "-fdata-sections",
+   "-DSTRING_ARRAY_NAME=FourthFingerPkgStrings",
+   "-m64",
+   "-fno-stack-protector",
+   "-DEFIAPI=__attribute__((ms_abi))",
+   "-maccumulate-outgoing-args",
+   "-mno-red-zone",
+   "-Wno-address",
+   "-mcmodel=small",
+   "-fpie",
+   "-fno-asynchronous-unwind-tables",
+   "-Wno-address",
+   "-fno-omit-frame-pointer",
+   "-flto",
+   "-DUSING_LTO",
+   "-c",
+   "-o",
+   "/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg/Application/BootLib/BootLib/OUTPUT/./text_input_lib.obj",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/FourthFingerPkg/Application/BootLib/memory_lib",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/FourthFingerPkg/Application/BootLib",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/Build/FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg/Application/BootLib/BootLib/DEBUG",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/MdePkg",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Include",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Test/UnitTest/Include",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Test/Mock/Include",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Library/MipiSysTLib/mipisyst/library/include",
+   "-I/home/alexanderjohnston/Documents/programs/edk2/MdePkg/Include/X64",
+   "/home/alexanderjohnston/Documents/programs/edk2/FourthFingerPkg/Application/BootLib/text_input_lib.c"
+  ],
+  "file": "/home/alexanderjohnston/Documents/programs/edk2/FourthFingerPkg/Application/BootLib/text_input_lib.c"
  }
 ]
