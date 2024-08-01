@@ -1,7 +1,7 @@
 GDB_COMMANDS := gdb_commands
 MAKE_OUTPUT := make_output.txt
 
-all: delete_build_directory_if_exists build compiledb run \
+all: build compiledb run \
 	 Application/BootLib \
      FourthFingerPkg.dec \
      FourthFingerPkg.dsc
@@ -23,7 +23,7 @@ run: $(BUILD_DIR)/$(EFI_FILE)
 	EmulatorPkg/build.sh run < $(GDB_COMMANDS) && \
 	rm $(GDB_COMMANDS)
 
-delete_build_directory_if_exists:
+clean:
 	@if [ -d "../Build/FourthFingerPkg" ]; then \
 		rm -rf "../Build/FourthFingerPkg"; \
 	fi

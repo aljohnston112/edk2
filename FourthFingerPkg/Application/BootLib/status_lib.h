@@ -25,4 +25,16 @@
         } \
     } while(0);
 
+#define RETURN_IF_NOT_FOUND_STATUS(status, string_on_error) \
+    do { \
+        if (status == EFI_NOT_FOUND) { \
+            RETURN_IF_NOT_SUCCESS( \
+                status, \
+                string_on_error \
+            ); \
+        } \
+    } while(0);
+
+EFI_STATUS check_allocate_pool_status(EFI_STATUS status);
+
 #endif //STATUS_LIB_H

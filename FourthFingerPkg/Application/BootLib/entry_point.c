@@ -6,9 +6,12 @@
 #include "memory_lib/memory_lib.h"
 #include "memory_lib/efi_memory_type.h"
 #include "status_lib.h"
+#include "text_input_lib.h"
 #include "time_lib.h"
 
-EFI_STATUS main_entry() {
+EFI_STATUS main_entry(
+    EFI_HANDLE imageHandle
+) {
     RETURN_IF_NOT_SUCCESS(
         gST->ConOut->Reset(
             gST->ConOut,
@@ -26,7 +29,8 @@ EFI_STATUS main_entry() {
     );
 
     RETURN_IF_NOT_SUCCESS(
-        PrintEfiSystemTable(),
+        print_input_text_handle_names(imageHandle),
+        // PrintEfiSystemTable(),
         // PrintEfiTime(),
         // print_memory_map(),
         "Printing time failed"
@@ -40,7 +44,7 @@ UefiMain(
     IN EFI_HANDLE ImageHandle,
     IN EFI_SYSTEM_TABLE* SystemTable
 ) {
-    EFI_STATUS status = main_entry();
+    EFI_STATUS status = main_entry(ImageHandle);
     while (true) {}
     return status;
 }
