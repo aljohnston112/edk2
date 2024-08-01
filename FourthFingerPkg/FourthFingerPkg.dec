@@ -1,0 +1,20 @@
+[Defines]
+  DEC_SPECIFICATION = 0x00010005
+  PACKAGE_NAME = FourthFingerPkg
+  PACKAGE_GUID = eb0caba9-2143-475c-ba6f-eecadbbd2473
+  PACKAGE_VERSION = 0.1
+
+[Includes]
+  #include header file path, relative to package directory
+
+[LibraryClasses]
+  #libraryclassname|librarclass header file name, relative to workspace
+
+[Guids]
+  #GuidCName = {xxxxxxxx,xxxx,xxxx,{xx,xx,xx,xx,xx,xx,xx,xx}},
+
+[Ppis]
+  #PpiGuidCName = {xxxxxxxx,xxxx,xxxx,{xx,xx,xx,xx,xx,xx,xx,xx}},
+
+[Protocols]
+  #ProtocolGuidCName = {xxxxxxxx,xxxx,xxxx,{xx,xx,xx,xx,xx,xx,xx,xx}},

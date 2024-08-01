@@ -404,7 +404,7 @@ PlatformBootManagerAfterConsole (
       PlatformBdsRegisterStaticBootOptions ();
       PlatformBdsConnectSequence ();
       EfiBootManagerRefreshAllBootOption ();
-      EfiBootManagerSortLoadOptionVariable (LoadOptionTypeBoot, (SORT_COMPARE)CompareBootOption);
+      // EfiBootManagerSortLoadOptionVariable (LoadOptionTypeBoot, (SORT_COMPARE)CompareBootOption);
       break;
   }
 }
