@@ -12,29 +12,33 @@
 EFI_STATUS main_entry(
     EFI_HANDLE imageHandle
 ) {
-    RETURN_IF_NOT_SUCCESS(
-        gST->ConOut->Reset(
+    EFI_STATUS status = gST->ConOut->Reset(
             gST->ConOut,
             true
-        ),
+        );
+    RETURN_IF_NOT_SUCCESS(
+        status,
         "The text output device is not functioning correctly and could not be reset."
     );
 
-    RETURN_IF_NOT_SUCCESS(
-        gST->ConOut->OutputString (
+    status = gST->ConOut->OutputString (
             gST->ConOut,
             L"Hello World!\n\r"
-        ),
+        );
+    RETURN_IF_NOT_SUCCESS(
+        status,
         "Printing failed"
     );
 
+    status = print_input_text_handle_names(imageHandle);
+    // PrintEfiSystemTable(),
+    // PrintEfiTime(),
+    // print_memory_map(),
     RETURN_IF_NOT_SUCCESS(
-        print_input_text_handle_names(imageHandle),
-        // PrintEfiSystemTable(),
-        // PrintEfiTime(),
-        // print_memory_map(),
-        "Printing time failed"
+        status,
+        "Main failed"
     );
+
     return EFI_SUCCESS;
 }
 

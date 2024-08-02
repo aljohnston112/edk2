@@ -1,15 +1,18 @@
 #ifndef STATUS_LIB_H
 #define STATUS_LIB_H
 
-#include <stdbool.h>
-#include <Library/UefiLib.h>
-
 #define RETURN_IF_NOT_SUCCESS(status, string_on_error) \
     do{ \
         if (EFI_ERROR(status)) { \
             AsciiPrint( \
-                "Error: %s\n\r", \
+                "Status: %u\nError: ", \
+                status \
+            ); \
+            AsciiPrint( \
                 string_on_error \
+            ); \
+            AsciiPrint( \
+                "\n" \
             ); \
             return status; \
         } \
@@ -34,6 +37,16 @@
             ); \
         } \
     } while(0);
+
+#define RETURN_IF_OUT_OF_RESOURCSE_STATUS(status, string_on_error) \
+    do { \
+        if (status == EFI_OUT_OF_RESOURCES) { \
+            RETURN_IF_NOT_SUCCESS( \
+                status, \
+                string_on_error \
+            ); \
+    } \
+} while(0);
 
 EFI_STATUS check_allocate_pool_status(EFI_STATUS status);
 

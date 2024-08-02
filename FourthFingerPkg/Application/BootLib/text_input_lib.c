@@ -1,212 +1,118 @@
 #include <stdlib.h>
 
-#include <Library/UefiBootServicesTableLib.h>
+#include <Library/UefiLib.h>
 
+#include "handle_lib.h"
+#include "protocol_lib.h"
 #include "status_lib.h"
 #include "text_input_lib.h"
 
+EFI_STATUS print_input_text_handle_names(
+    EFI_HANDLE imageHandle
+) {
+    EFI_DEVICE_PATH_PROTOCOL* device_path_protocols = NULL;
+    EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL* text_input_protocols = NULL;
+    EFI_HANDLE* handles = NULL;
+    UINTN number_of_handles = 0;
+    UINTN number_of_device_path_protocols = 0;
+    UINTN number_of_text_input_protocols = 0;
 
-EFI_STATUS check_locate_handle_status(const EFI_STATUS status) {
-    RETURN_IF_INVALID_PARAMETER_STATUS(
-        status,
-        "Check handle argument error for text input"
+#define FREE(status, string_on_error) \
+    EFI_STATUS original_status = status; \
+    do { \
+        if (number_of_text_input_protocols > 0) { \
+            status = close_protocols_and_free_pool( \
+                handles, \
+                number_of_text_input_protocols, \
+                &gEfiSimpleTextInputExProtocolGuid, \
+                imageHandle, \
+                (VOID **)&text_input_protocols \
+            ); \
+        } \
+        if (number_of_device_path_protocols > 0) { \
+            status = close_protocols_and_free_pool( \
+                handles, \
+                number_of_device_path_protocols, \
+                &gEfiDevicePathProtocolGuid, \
+                imageHandle, \
+                (VOID **)&device_path_protocols \
+            ); \
+        } \
+        status = free_handle_pool(handles); \
+        RETURN_IF_NOT_SUCCESS( \
+            original_status, \
+            string_on_error \
+        ); \
+        return EFI_SUCCESS; \
+    } while(0)
+
+    EFI_STATUS status = get_protocols(
+        imageHandle,
+        &handles,
+        (VOID**)&text_input_protocols,
+        &number_of_handles,
+        &number_of_text_input_protocols,
+        &gEfiSimpleTextInputExProtocolGuid
     );
-    if (status == EFI_NOT_FOUND) {
-        RETURN_IF_NOT_SUCCESS(
+    if(EFI_ERROR(status)) {
+        FREE(
             status,
-            "Could not find handle for text input"
+            "Failed to get text input protocols"
         );
     }
-    return EFI_SUCCESS;
-}
 
-EFI_STATUS get_handles(
-    EFI_HANDLE **handles,
-    UINTN *buffer_size
-) {
-    *buffer_size = 0;
-    EFI_STATUS status = gBS->LocateHandle(
-        ByProtocol,
-        &gEfiSimpleTextInputExProtocolGuid,
-        NULL,
-        buffer_size,
-        *handles
-    );
+    if (text_input_protocols != NULL) {
 
-    RETURN_IF_INVALID_PARAMETER_STATUS(
-        status,
-        "Error locating handle"
-    );
-
-    while (status == EFI_BUFFER_TOO_SMALL) {
-        RETURN_IF_NOT_SUCCESS(
-            check_allocate_pool_status(
-                gBS->AllocatePool(
-                    EfiLoaderData,
-                    *buffer_size,
-                    (VOID**)handles
-                )
-            ),
-            "Error allocating pool for handles"
+        status = AsciiPrint(
+            "Number of text input protocols: %u\n",
+            number_of_text_input_protocols
         );
-
-        status = gBS->LocateHandle(
-            ByProtocol,
-            &gEfiSimpleTextInputExProtocolGuid,
-            NULL,
-            buffer_size,
-            *handles
-        );
-
-        if (status == EFI_INVALID_PARAMETER) {
-            gBS->FreePool(handles);
-            *buffer_size = 0;
-            RETURN_IF_NOT_SUCCESS(
+        if (EFI_ERROR(status)) {
+            FREE(
                 status,
-                "Failed to get handle"
+                "Failed to print number of text input protocols"
             );
         }
+    } else {
+        status = EFI_ABORTED;
+        FREE(
+            status,
+            "Text input protocols were null"
+        );
     }
-    return EFI_SUCCESS;
-}
-
-EFI_STATUS get_text_input_handles(
-    const EFI_HANDLE imageHandle,
-    EFI_HANDLE **handles,
-    EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL **text_input_protocols,
-    UINTN *text_input_buffer_size
-) {
-    *text_input_buffer_size = 0;
-    UINTN handle_buffer_size = 0;
-    RETURN_IF_NOT_SUCCESS(
-        get_handles(
-            handles,
-            &handle_buffer_size ),
-        "Failed to get text input handles"
-    );
 
     if (handles != NULL) {
-        const UINTN number_of_handles = handle_buffer_size / sizeof(EFI_HANDLE *);
-
-        EFI_STATUS status = AsciiPrint(
-            "Number of handles: %u\n",
-            number_of_handles
-        );
-        if (EFI_ERROR(status)) {
-            gBS->FreePool(*handles);
-            RETURN_IF_NOT_SUCCESS(
-                status,
-                "Failed to print number of handles"
-            );
-        }
-
-        status = gBS->AllocatePool(
-            EfiLoaderData,
-            number_of_handles * sizeof(EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *),
-            (VOID **) text_input_protocols
-        );
-        if (EFI_ERROR(status)) {
-            gBS->FreePool(*handles);
-            RETURN_IF_NOT_SUCCESS(
-                check_allocate_pool_status(status),
-                "Error allocating pool for text input handles"
-            );
-        }
-
-        for (UINTN i = 0; i < number_of_handles; i++) {
-            status = gBS->OpenProtocol(
-                (*handles)[i],
-                &gEfiSimpleTextInputExProtocolGuid,
-                (VOID **) &(*text_input_protocols)[i],
-                imageHandle,
-                NULL,
-                EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL
-            );
-            *text_input_buffer_size += sizeof(EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *);
-
-            if (EFI_ERROR(status)) {
-                for (UINTN j = 0; j < i; j++) {
-                    gBS->CloseProtocol(
-                        (*handles)[j],
-                        &gEfiSimpleTextInputExProtocolGuid,
-                        imageHandle,
-                        NULL
-                    );
-                }
-
-                gBS->FreePool(*handles);
-                gBS->FreePool(*text_input_protocols);
-                *text_input_buffer_size = 0;
-                RETURN_IF_NOT_SUCCESS(
-                    status,
-                    "Error opening text input protocol\n"
-                );
-            }
-        }
-    } else {
-        RETURN_IF_NOT_SUCCESS(
-            EFI_ABORTED,
-            "Text input handles were null"
-        );
-    }
-
-    return EFI_SUCCESS;
-}
-
-EFI_STATUS print_input_text_handle_names(
-    const EFI_HANDLE imageHandle
-) {
-    EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *protocols = NULL;
-    EFI_HANDLE *handles = NULL;
-    UINTN text_input_protocol_buffer_size = 0;
-
-    RETURN_IF_NOT_SUCCESS(
-        get_text_input_handles(
+        status = get_protocols(
             imageHandle,
             &handles,
-            &protocols,
-            &text_input_protocol_buffer_size
-        ),
-        "Failed to get text input handles"
-    );
-
-    if (protocols != NULL) {
-        const UINTN number_of_handles = text_input_protocol_buffer_size / sizeof(EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *);
-
-        EFI_STATUS status = AsciiPrint(
-            "Number of text input handles: %u\n",
-            number_of_handles
+            (VOID**)&device_path_protocols,
+            &number_of_handles,
+            &number_of_device_path_protocols,
+            &gEfiDevicePathProtocolGuid
         );
+
+        if (status == EFI_UNSUPPORTED) {
+            FREE(
+                status,
+                "Handles did not support protocol"
+            );
+        }
+
+        if (status == EFI_ACCESS_DENIED) {
+            FREE(
+                status,
+                "Handle protocl access denied"
+            );
+        }
 
         if (EFI_ERROR(status)) {
-            gBS->FreePool(handles);
-            gBS->FreePool(protocols);
-            RETURN_IF_NOT_SUCCESS(
+            FREE(
                 status,
-                "Failed to print number of text input handles"
+                "Failed to get device path protocols"
             );
         }
 
-        for (UINTN i = 0; i < number_of_handles; i++) {
-            gBS->CloseProtocol(
-                handles[i],
-                &gEfiSimpleTextInputExProtocolGuid,
-                imageHandle,
-                NULL
-            );
-        }
-        if (number_of_handles > 0) {
-            gBS->FreePool(handles);
-            gBS->FreePool(protocols);
-        }
-    } else {
-        if(handles != NULL) {
-            gBS->FreePool(handles);
-        }
-        RETURN_IF_NOT_SUCCESS(
-            EFI_ABORTED,
-            "Text input handles were null"
-        );
+        if (device_path_protocols != NULL) {}
     }
 
     return EFI_SUCCESS;

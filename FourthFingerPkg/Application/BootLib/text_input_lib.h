@@ -1,8 +1,6 @@
 #ifndef TEXT_INPUT_LIB_H
 #define TEXT_INPUT_LIB_H
 
-#include <Library/UefiLib.h>
-
 EFI_STATUS get_text_input_handles(
     EFI_HANDLE imageHandle,
     EFI_HANDLE** handles,

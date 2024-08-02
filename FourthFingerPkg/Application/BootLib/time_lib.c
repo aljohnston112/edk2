@@ -7,122 +7,136 @@
 
 EFI_STATUS
 PrintEfiTime() {
-
-    EFI_TIME *time;
+    EFI_TIME* time;
+    EFI_STATUS status = gBS->AllocatePool(
+        EfiLoaderData,
+        sizeof(EFI_TIME),
+        (VOID**)&time
+    );
     RETURN_IF_NOT_SUCCESS(
-         gBS->AllocatePool (
-            EfiLoaderData,
-            sizeof (EFI_TIME),
-            (VOID **)&time
-        ),
+        status,
         "Alloc for time failed"
     );
 
-    EFI_TIME_CAPABILITIES *capabilities;
+    EFI_TIME_CAPABILITIES* capabilities;
+    status = gBS->AllocatePool(
+        EfiLoaderData,
+        sizeof(EFI_TIME_CAPABILITIES),
+        (VOID**)&capabilities
+    );
     RETURN_IF_NOT_SUCCESS(
-        gBS->AllocatePool (
-            EfiLoaderData,
-            sizeof (EFI_TIME_CAPABILITIES),
-            (VOID **)&capabilities
-        ),
-        "Alloc for capabilities failed"
+        status,
+        "Alloc for time capabilities failed"
     );
 
+    status = gRT->GetTime(
+        time,
+        capabilities
+    );
     RETURN_IF_NOT_SUCCESS(
-        gRT->GetTime (
-            time,
-            capabilities
-        ),
+        status,
         "GetTime failed"
     );
 
-    if (time != NULL) {
+    if (capabilities != NULL) {
+        status = gBS->FreePool(capabilities);
         RETURN_IF_NOT_SUCCESS(
-            AsciiPrint(
-                "Year: %u\n",
-                time->Year
-            ),
+            status,
+            "Error freeing capabilities"
+        );
+    }
+
+    if (time != NULL) {
+        status = AsciiPrint(
+            "Year: %u\n",
+            time->Year
+        );
+        RETURN_IF_NOT_SUCCESS(
+            status,
             "Failed to print Year"
         );
 
+        status = AsciiPrint(
+            "Month: %u\n",
+            time->Month
+        );
         RETURN_IF_NOT_SUCCESS(
-            AsciiPrint(
-                "Month: %u\n",
-                time->Month
-            ),
+            status,
             "Failed to print Month"
         );
 
+        status = AsciiPrint(
+            "Day: %u\n",
+            time->Day
+        );
         RETURN_IF_NOT_SUCCESS(
-            AsciiPrint(
-                "Day: %u\n",
-                time->Day
-            ),
+            status,
             "Failed to print Day"
         );
 
+        status = AsciiPrint(
+            "Hour: %u\n",
+            time->Hour
+        );
         RETURN_IF_NOT_SUCCESS(
-            AsciiPrint(
-                "Hour: %u\n",
-                time->Hour
-            ),
+            status,
             "Failed to print Hour"
         );
 
+        status = AsciiPrint(
+            "Minute: %u\n",
+            time->Minute
+        );
         RETURN_IF_NOT_SUCCESS(
-            AsciiPrint(
-                "Minute: %u\n",
-                time->Minute
-            ),
+            status,
             "Failed to print Minute"
         );
 
+        status = AsciiPrint(
+            "Second: %u\n",
+            time->Second
+        );
         RETURN_IF_NOT_SUCCESS(
-            AsciiPrint(
-                "Second: %u\n",
-                time->Second
-            ),
+            status,
             "Failed to print Second"
         );
 
+        status = AsciiPrint(
+            "Nanosecond: %u\n",
+            time->Nanosecond
+        );
         RETURN_IF_NOT_SUCCESS(
-            AsciiPrint(
-                "Nanosecond: %u\n",
-                time->Nanosecond
-            ),
+            status,
             "Failed to print Nanosecond"
         );
 
+        status = AsciiPrint(
+            "TimeZone: %d\n",
+            time->TimeZone
+        );
         RETURN_IF_NOT_SUCCESS(
-            AsciiPrint(
-                "TimeZone: %d\n",
-                time->TimeZone
-            ),
+            status,
             "Failed to print TimeZone"
         );
 
+        status = AsciiPrint(
+            "Daylight: %u\n",
+            time->Daylight
+        );
         RETURN_IF_NOT_SUCCESS(
-            AsciiPrint(
-                "Daylight: %u\n",
-                time->Daylight
-            ),
+            status,
             "Failed to print Daylight"
         );
 
+        status = gBS->FreePool(time);
         RETURN_IF_NOT_SUCCESS(
-            gBS->FreePool(time),
+            status,
             "Error freeing time"
         );
-
-        RETURN_IF_NOT_SUCCESS(
-            gBS->FreePool(capabilities),
-            "Error freeing capabilities"
-        );
-
     } else {
         RETURN_IF_NOT_SUCCESS(
             EFI_INVALID_PARAMETER,
-            "Invalid EFI_TIME*"
+            "Time was null*"
         );
     }
 

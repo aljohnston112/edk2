@@ -7,13 +7,15 @@
   UEFI_SPECIFICATION_VERSION = 0x00020014
 
 [Sources]
-  status_lib.c
   entry_point.c
+  handle_lib.c
+  memory_lib/memory_lib.c
+  memory_lib/efi_memory_type.h
+  protocol_lib.c
+  status_lib.c
   system_table_lib.c
   text_input_lib.c
   time_lib.c
-  memory_lib/memory_lib.c
-  memory_lib/efi_memory_type.h
 
 [Packages]
   MdePkg/MdePkg.dec
