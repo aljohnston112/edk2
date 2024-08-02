@@ -6,3 +6,5 @@ __pycache__/
 tags/
 .vscode/
 FourthFingerPkg/Application/compile_commands.json
+./.idea
+/FourthFingerPkg/compile_commands.json
