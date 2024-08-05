@@ -7,6 +7,73 @@
 #include "status_lib.h"
 #include "text_input_lib.h"
 
+#include <Library/UefiBootServicesTableLib.h>
+
+RETURN_STATUS wait_for_key() {
+    UINTN index = 0;
+    const EFI_STATUS status = gBS->WaitForEvent(
+        1,
+        &gST->ConIn->WaitForKey,
+        &index
+    );
+    RETURN_IF_NOT_SUCCESS(
+        status,
+        "Failed to wait for key"
+    );
+    return EFI_SUCCESS;
+}
+
+EFI_STATUS wait_for_key_and_get_it(
+    EFI_INPUT_KEY* key
+) {
+    EFI_STATUS status = wait_for_key();
+    RETURN_IF_NOT_SUCCESS(
+        status,
+        "Failed to wait for key"
+    );
+    while ((status = gST->ConIn->ReadKeyStroke(
+            gST->ConIn,
+            key
+        )) == EFI_NOT_READY
+    ) {}
+
+    RETURN_IF_NOT_SUCCESS(
+        status,
+        "Failed to read key"
+    );
+    return EFI_SUCCESS;
+}
+
+EFI_STATUS wait_for_unicode(
+    const UINT16 unicode_char
+) {
+    EFI_STATUS status = EFI_SUCCESS;
+    EFI_INPUT_KEY key;
+    do {
+        status = wait_for_key_and_get_it(&key);
+        RETURN_IF_NOT_SUCCESS(
+            status,
+            "Failed to wait for key"
+        );
+    } while (key.UnicodeChar != unicode_char);
+    return status;
+}
+
+EFI_STATUS wait_for_scan_code(
+    const UINT16 unicode_char
+) {
+    EFI_STATUS status = EFI_SUCCESS;
+    EFI_INPUT_KEY key;
+    do {
+        status = wait_for_key_and_get_it(&key);
+        RETURN_IF_NOT_SUCCESS(
+            status,
+            "Failed to wait for key"
+        );
+    } while (key.ScanCode != unicode_char);
+    return status;
+}
+
 EFI_STATUS print_input_text_handle_names(
     EFI_HANDLE imageHandle
 ) {
@@ -53,7 +120,7 @@ EFI_STATUS print_input_text_handle_names(
         &number_of_text_input_protocols,
         &gEfiSimpleTextInputExProtocolGuid
     );
-    if(EFI_ERROR(status)) {
+    if (EFI_ERROR(status)) {
         FREE(
             status,
             "Failed to get text input protocols"
@@ -61,7 +128,6 @@ EFI_STATUS print_input_text_handle_names(
     }
 
     if (text_input_protocols != NULL) {
-
         status = AsciiPrint(
             "Number of text input protocols: %u\n",
             number_of_text_input_protocols

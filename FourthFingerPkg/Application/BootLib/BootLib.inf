@@ -7,6 +7,7 @@
   UEFI_SPECIFICATION_VERSION = 0x00020014
 
 [Sources]
+  console_lib.c
   entry_point.c
   handle_lib.c
   memory_lib/memory_lib.c

@@ -18,7 +18,7 @@ PrintEfiTime() {
         "Alloc for time failed"
     );
 
-    EFI_TIME_CAPABILITIES* capabilities;
+    EFI_TIME_CAPABILITIES* capabilities = NULL;
     status = gBS->AllocatePool(
         EfiLoaderData,
         sizeof(EFI_TIME_CAPABILITIES),
