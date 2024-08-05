@@ -45,7 +45,6 @@ EFI_STATUS print_input_text_handle_names(
         ); \
         return EFI_SUCCESS; \
     } while(0)
-
     EFI_STATUS status = get_protocols(
         imageHandle,
         &handles,

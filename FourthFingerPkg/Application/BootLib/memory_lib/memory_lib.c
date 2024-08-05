@@ -3,56 +3,56 @@
 #include "memory_lib.h"
 #include "status_lib.h"
 
-void print_all_memory_types(const EFI_MEMORY_TYPE memoryType) {
+void print_memory_type(const EFI_MEMORY_TYPE memoryType) {
     switch (memoryType) {
         case EfiReservedMemoryType:
             AsciiPrint("Memory type: EfiReservedMemoryType\n");
-        break;
+            break;
         case EfiLoaderCode:
             AsciiPrint("Memory type: EfiLoaderCode\n");
-        break;
+            break;
         case EfiLoaderData:
             AsciiPrint("Memory type: EfiLoaderData\n");
-        break;
+            break;
         case EfiBootServicesCode:
             AsciiPrint("Memory type: EfiBootServicesCode\n");
-        break;
+            break;
         case EfiBootServicesData:
             AsciiPrint("Memory type: EfiBootServicesData\n");
-        break;
+            break;
         case EfiRuntimeServicesCode:
             AsciiPrint("Memory type: EfiRuntimeServicesCode\n");
-        break;
+            break;
         case EfiRuntimeServicesData:
             AsciiPrint("Memory type: EfiRuntimeServicesData\n");
-        break;
+            break;
         case EfiConventionalMemory:
             AsciiPrint("Memory type: EfiConventionalMemory\n");
-        break;
+            break;
         case EfiUnusableMemory:
             AsciiPrint("Memory type: EfiUnusableMemory\n");
-        break;
+            break;
         case EfiACPIReclaimMemory:
             AsciiPrint("Memory type: EfiACPIReclaimMemory\n");
-        break;
+            break;
         case EfiACPIMemoryNVS:
             AsciiPrint("Memory type: EfiACPIMemoryNVS\n");
-        break;
+            break;
         case EfiMemoryMappedIO:
             AsciiPrint("Memory type: EfiMemoryMappedIO\n");
-        break;
+            break;
         case EfiMemoryMappedIOPortSpace:
             AsciiPrint("Memory type: EfiMemoryMappedIOPortSpace\n");
-        break;
+            break;
         case EfiPalCode:
             AsciiPrint("Memory type: EfiPalCode\n");
-        break;
+            break;
         case EfiPersistentMemory:
             AsciiPrint("Memory type: EfiPersistentMemory\n");
-        break;
+            break;
         default:
             AsciiPrint("Unknown memory type\n");
-        break;
+            break;
     }
 }
 
@@ -97,7 +97,7 @@ void check_memory_attributes(const UINT64 memoryAttributes) {
 
 EFI_STATUS print_memory_map() {
     UINTN memory_map_size = 0;
-    EFI_MEMORY_DESCRIPTOR* memory_map = NULL;
+    EFI_MEMORY_DESCRIPTOR *memory_map = NULL;
     UINTN map_key;
     UINTN descriptor_size;
     UINT32 descriptor_version;
@@ -148,10 +148,9 @@ EFI_STATUS print_memory_map() {
         for (UINTN index = 0; index < memory_map_entry_count; index++) {
             const EFI_MEMORY_DESCRIPTOR current_descriptor = memory_map[index];
             const EFI_MEMORY_TYPE type = current_descriptor.Type;
-            print_all_memory_types(type);
+            print_memory_type(type);
         }
-    }
-    else {
+    } else {
         RETURN_IF_NOT_SUCCESS(
             EFI_ABORTED,
             "Memory map was null after allocation"

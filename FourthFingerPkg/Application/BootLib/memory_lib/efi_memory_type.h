@@ -1,8 +1,6 @@
 #ifndef EFI_MEMORY_TYPE_H
 #define EFI_MEMORY_TYPE_H
 
-#include <Library/UefiLib.h>
-
 typedef struct {
     EFI_MEMORY_DESCRIPTOR **memory_descriptor;
     UINT64 size;
