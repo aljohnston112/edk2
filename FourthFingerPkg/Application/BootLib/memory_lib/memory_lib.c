@@ -29,7 +29,7 @@ static const EFI_MEMORY_TYPE letter_to_memory_type[] = {
     [15] = EfiUnacceptedMemoryType // 'p'
 };
 
-static const char* efi_memory_type_strings[EfiMaxMemoryType] = {
+static const char *efi_memory_type_strings[EfiMaxMemoryType] = {
     [EfiReservedMemoryType] = "a. Reserved Memory",
     [EfiLoaderCode] = "b. Loader Code",
     [EfiLoaderData] = "c. Loader Data",
@@ -49,60 +49,60 @@ static const char* efi_memory_type_strings[EfiMaxMemoryType] = {
 };
 
 void add_memory_descriptor(
-    efi_memory_descriptor_list* memory_descriptor_list,
-    EFI_MEMORY_DESCRIPTOR* memory_descriptor
+    efi_memory_descriptor_list *memory_descriptor_list,
+    EFI_MEMORY_DESCRIPTOR *memory_descriptor
 );
 
 void print_memory_type(const EFI_MEMORY_TYPE memoryType) {
     switch (memoryType) {
-    case EfiReservedMemoryType:
-        AsciiPrint("Memory type: EfiReservedMemoryType\n");
-        break;
-    case EfiLoaderCode:
-        AsciiPrint("Memory type: EfiLoaderCode\n");
-        break;
-    case EfiLoaderData:
-        AsciiPrint("Memory type: EfiLoaderData\n");
-        break;
-    case EfiBootServicesCode:
-        AsciiPrint("Memory type: EfiBootServicesCode\n");
-        break;
-    case EfiBootServicesData:
-        AsciiPrint("Memory type: EfiBootServicesData\n");
-        break;
-    case EfiRuntimeServicesCode:
-        AsciiPrint("Memory type: EfiRuntimeServicesCode\n");
-        break;
-    case EfiRuntimeServicesData:
-        AsciiPrint("Memory type: EfiRuntimeServicesData\n");
-        break;
-    case EfiConventionalMemory:
-        AsciiPrint("Memory type: EfiConventionalMemory\n");
-        break;
-    case EfiUnusableMemory:
-        AsciiPrint("Memory type: EfiUnusableMemory\n");
-        break;
-    case EfiACPIReclaimMemory:
-        AsciiPrint("Memory type: EfiACPIReclaimMemory\n");
-        break;
-    case EfiACPIMemoryNVS:
-        AsciiPrint("Memory type: EfiACPIMemoryNVS\n");
-        break;
-    case EfiMemoryMappedIO:
-        AsciiPrint("Memory type: EfiMemoryMappedIO\n");
-        break;
-    case EfiMemoryMappedIOPortSpace:
-        AsciiPrint("Memory type: EfiMemoryMappedIOPortSpace\n");
-        break;
-    case EfiPalCode:
-        AsciiPrint("Memory type: EfiPalCode\n");
-        break;
-    case EfiPersistentMemory:
-        AsciiPrint("Memory type: EfiPersistentMemory\n");
-        break;
-    default:
-        AsciiPrint("Unknown memory type\n");
-        break;
+        case EfiReservedMemoryType:
+            AsciiPrint("Memory type: EfiReservedMemoryType\n");
+            break;
+        case EfiLoaderCode:
+            AsciiPrint("Memory type: EfiLoaderCode\n");
+            break;
+        case EfiLoaderData:
+            AsciiPrint("Memory type: EfiLoaderData\n");
+            break;
+        case EfiBootServicesCode:
+            AsciiPrint("Memory type: EfiBootServicesCode\n");
+            break;
+        case EfiBootServicesData:
+            AsciiPrint("Memory type: EfiBootServicesData\n");
+            break;
+        case EfiRuntimeServicesCode:
+            AsciiPrint("Memory type: EfiRuntimeServicesCode\n");
+            break;
+        case EfiRuntimeServicesData:
+            AsciiPrint("Memory type: EfiRuntimeServicesData\n");
+            break;
+        case EfiConventionalMemory:
+            AsciiPrint("Memory type: EfiConventionalMemory\n");
+            break;
+        case EfiUnusableMemory:
+            AsciiPrint("Memory type: EfiUnusableMemory\n");
+            break;
+        case EfiACPIReclaimMemory:
+            AsciiPrint("Memory type: EfiACPIReclaimMemory\n");
+            break;
+        case EfiACPIMemoryNVS:
+            AsciiPrint("Memory type: EfiACPIMemoryNVS\n");
+            break;
+        case EfiMemoryMappedIO:
+            AsciiPrint("Memory type: EfiMemoryMappedIO\n");
+            break;
+        case EfiMemoryMappedIOPortSpace:
+            AsciiPrint("Memory type: EfiMemoryMappedIOPortSpace\n");
+            break;
+        case EfiPalCode:
+            AsciiPrint("Memory type: EfiPalCode\n");
+            break;
+        case EfiPersistentMemory:
+            AsciiPrint("Memory type: EfiPersistentMemory\n");
+            break;
+        default:
+            AsciiPrint("Unknown memory type\n");
+            break;
     }
 }
 
@@ -145,21 +145,22 @@ void print_memory_attributes(const UINT64 memoryAttributes) {
     }
 }
 
-EFI_STATUS page_through_memory_map(const efi_memory_descriptor_list* memory_descriptor_list) {
+EFI_STATUS page_through_memory_map(efi_memory_descriptor_list memory_descriptor_list) {
     __label__ error;
 
     EFI_STATUS status = EFI_SUCCESS;
-    char* error_string = "Success";
+    char *error_string = "Success";
 
-    void on_error(char* on_error)
-    {
+    void on_error(char *on_error) {
         error_string = on_error;
-        goto error;
+        if (EFI_ERROR(status)) {
+            goto error;
+        }
     }
 
     clear_console();
 
-    UINTN number_of_pages = memory_descriptor_list->size;
+    UINTN number_of_pages = memory_descriptor_list.size;
     if (number_of_pages == 0) {
         AsciiPrint("No Pages; Press Enter to Return");
         status = wait_for_unicode(UNICODE_ENTER);
@@ -168,15 +169,16 @@ EFI_STATUS page_through_memory_map(const efi_memory_descriptor_list* memory_desc
         );
     } else {
         UINTN current_page = 0;
-        AsciiPrint("%u out of %u\n", current_page, number_of_pages);
         BOOLEAN user_done = FALSE;
-        BOOLEAN valid_key = FALSE;
         EFI_INPUT_KEY key;
         while (user_done == FALSE) {
-            EFI_MEMORY_DESCRIPTOR* memory_descriptor = memory_descriptor_list->memory_descriptors[current_page];
+            BOOLEAN valid_key = FALSE;
+            EFI_MEMORY_DESCRIPTOR* memory_descriptor = memory_descriptor_list.memory_descriptors[current_page];
+            clear_console();
+            AsciiPrint("%u out of %u\n", current_page + 1, number_of_pages);
             print_memory_type(memory_descriptor->Type);
-            AsciiPrint("Physical Start Address: %u\n", memory_descriptor->PhysicalStart);
-            AsciiPrint("Virtual Start Address: %u\n", memory_descriptor->VirtualStart);
+            AsciiPrint("Physical Start Address: 0x%X\n", memory_descriptor->PhysicalStart);
+            AsciiPrint("Virtual Start Address: 0x%X\n", memory_descriptor->VirtualStart);
             AsciiPrint("Number of Pages: %u\n", memory_descriptor->NumberOfPages);
             print_memory_attributes(memory_descriptor->Attribute);
             AsciiPrint("Press Enter to Go Back\n");
@@ -187,34 +189,29 @@ EFI_STATUS page_through_memory_map(const efi_memory_descriptor_list* memory_desc
                     "Failed to wait for key"
                 );
 
-                if (key.UnicodeChar == UEFI_KEY_LEFT ||
-                    key.UnicodeChar == UEFI_KEY_RIGHT ||
+                if (key.ScanCode == UEFI_KEY_LEFT ||
+                    key.ScanCode == UEFI_KEY_RIGHT ||
                     key.UnicodeChar == UNICODE_ENTER
                 ) {
                     valid_key = TRUE;
                 }
             }
-            switch (key.UnicodeChar) {
-            case UEFI_KEY_LEFT:
-                AsciiPrint("Left");
-                while (1){}
+
+            if (key.ScanCode == UEFI_KEY_LEFT) {
                 if (current_page == 0) {
                     current_page = number_of_pages - 1;
                 } else {
-                    current_page++;
+                    current_page--;
                 }
-                break;
-            case UEFI_KEY_RIGHT:
+            } else if (key.ScanCode == UEFI_KEY_RIGHT) {
                 if (current_page == number_of_pages - 1) {
                     current_page = 0;
                 } else {
-                    current_page--;
+                    current_page++;
                 }
-                break;
-            case UNICODE_ENTER:
+            } else if (key.UnicodeChar == UNICODE_ENTER) {
                 user_done = TRUE;
-                break;
-            default:
+            } else {
                 on_error("Bug in page_through_memory_map");
             }
         }
@@ -232,13 +229,12 @@ EFI_STATUS print_memory_map() {
     __label__ error;
 
     EFI_STATUS status = EFI_SUCCESS;
-    char* error_string = "Success";
+    char *error_string = "Success";
 
-    EFI_MEMORY_DESCRIPTOR* memory_map = NULL;
+    EFI_MEMORY_DESCRIPTOR *memory_map = NULL;
     efi_memory_descriptor_list memory_descriptor_lists[EfiMaxMemoryType];
 
-    void free()
-    {
+    void free() {
         const EFI_STATUS original_status = status;
         if (memory_map != NULL) {
             status = gBS->FreePool(memory_map);
@@ -258,8 +254,7 @@ EFI_STATUS print_memory_map() {
         goto error;
     }
 
-    void free_if_error(char* on_error)
-    {
+    void free_if_error(char *on_error) {
         if (EFI_ERROR(status)) {
             error_string = on_error;
             free();
@@ -289,7 +284,7 @@ EFI_STATUS print_memory_map() {
             gBS->AllocatePool(
                 EfiLoaderData,
                 memory_map_size,
-                (VOID**)&memory_map
+                (VOID **) &memory_map
             )
         );
         RETURN_IF_NOT_SUCCESS(
@@ -304,8 +299,9 @@ EFI_STATUS print_memory_map() {
             &descriptor_size,
             &descriptor_version
         );
-        if (status == EFI_INVALID_PARAMETER) {
-            free("Memory map error");
+        // Out of resources is expected here
+        if(status == EFI_INVALID_PARAMETER) {
+            free_if_error("Memory map error");
         }
     }
 
@@ -313,42 +309,41 @@ EFI_STATUS print_memory_map() {
         // Count the number of each memory type
         UINT64 memory_counts[EfiMaxMemoryType] = {0};
         const UINTN memory_map_entry_count = memory_map_size / descriptor_size;
+        EFI_MEMORY_DESCRIPTOR *current_descriptor = memory_map;
         for (UINTN index = 0; index < memory_map_entry_count; index++) {
-            const EFI_MEMORY_DESCRIPTOR* current_descriptor = NEXT_MEMORY_DESCRIPTOR(memory_map, descriptor_size);
             const EFI_MEMORY_TYPE type = current_descriptor->Type;
             memory_counts[type]++;
+            current_descriptor = NEXT_MEMORY_DESCRIPTOR(current_descriptor, descriptor_size);
         }
 
         // Allocate room for the descriptors in efi_memory_descriptors
         for (UINTN i = 0; i < EfiMaxMemoryType; ++i) {
             status = gBS->AllocatePool(
                 EfiLoaderData,
-                memory_counts[i] * sizeof(EFI_MEMORY_DESCRIPTOR*),
-                (VOID**)&memory_descriptor_lists[i].memory_descriptors
+                memory_counts[i] * sizeof(EFI_MEMORY_DESCRIPTOR *),
+                (VOID **) &memory_descriptor_lists[i].memory_descriptors
             );
             free_if_error("Failed to allocate for memory descriptor");
             memory_descriptor_lists[i].size = 0;
         }
 
         // Put the memory descriptors efi_memory_descriptors
+        current_descriptor = memory_map;
         for (UINTN index = 0; index < memory_map_entry_count; index++) {
-            EFI_MEMORY_DESCRIPTOR* current_descriptor = NEXT_MEMORY_DESCRIPTOR(memory_map, descriptor_size);;
             EFI_MEMORY_TYPE type = current_descriptor->Type;
             add_memory_descriptor(
                 &memory_descriptor_lists[type],
                 current_descriptor
             );
+            current_descriptor = NEXT_MEMORY_DESCRIPTOR(current_descriptor, descriptor_size);
         }
     } else {
         status = EFI_ABORTED;
-        free_if_error(
-            "Memory map was null after allocation"
-        );
+        free_if_error("Memory map was null after allocation");
     }
 
-    BOOLEAN userDone = FALSE;
-    while (userDone == FALSE) {
-
+    BOOLEAN user_done = FALSE;
+    while (user_done == FALSE) {
         clear_console();
 
         // Display memory type options
@@ -362,23 +357,28 @@ EFI_STATUS print_memory_map() {
         EFI_INPUT_KEY key;
         while (valid_key == FALSE) {
             status = wait_for_key_and_get_it(&key);
-            free_if_error(
-                "Failed to wait for key"
-            );
+            free_if_error("Failed to wait for key");
 
-            if (key.UnicodeChar >= 'a' && key.UnicodeChar <= 'p') {
+            if (
+                (key.UnicodeChar >= 'a' &&
+                 key.UnicodeChar <= 'p') ||
+                key.UnicodeChar == UNICODE_ENTER
+            ) {
                 valid_key = TRUE;
             }
         }
 
-        status = page_through_memory_map(
-            &memory_descriptor_lists[
-                letter_to_memory_type[key.UnicodeChar - 'a']
-            ]
-        );
-        free_if_error(
-            "Problem paging through memory map"
-        );
+        if (key.UnicodeChar != UNICODE_ENTER) {
+            status = page_through_memory_map(
+                memory_descriptor_lists[
+                    letter_to_memory_type[key.UnicodeChar - 'a']
+                ]
+            );
+            free_if_error("Problem paging through memory map");
+        } else {
+            user_done = TRUE;
+        }
+
     }
 
     status = EFI_SUCCESS;

@@ -24,7 +24,7 @@ RETURN_STATUS wait_for_key() {
 }
 
 EFI_STATUS wait_for_key_and_get_it(
-    EFI_INPUT_KEY* key
+    EFI_INPUT_KEY *key
 ) {
     EFI_STATUS status = wait_for_key();
     RETURN_IF_NOT_SUCCESS(
@@ -32,10 +32,11 @@ EFI_STATUS wait_for_key_and_get_it(
         "Failed to wait for key"
     );
     while ((status = gST->ConIn->ReadKeyStroke(
-            gST->ConIn,
-            key
-        )) == EFI_NOT_READY
-    ) {}
+                gST->ConIn,
+                key
+            )) == EFI_NOT_READY
+    ) {
+    }
 
     RETURN_IF_NOT_SUCCESS(
         status,
@@ -74,12 +75,23 @@ EFI_STATUS wait_for_scan_code(
     return status;
 }
 
+EFI_STATUS wait_for_any_key() {
+    EFI_STATUS status = EFI_SUCCESS;
+    EFI_INPUT_KEY key;
+    status = wait_for_key_and_get_it(&key);
+    RETURN_IF_NOT_SUCCESS(
+        status,
+        "Failed to wait for key"
+    );
+    return status;
+}
+
 EFI_STATUS print_input_text_handle_names(
     EFI_HANDLE imageHandle
 ) {
-    EFI_DEVICE_PATH_PROTOCOL* device_path_protocols = NULL;
-    EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL* text_input_protocols = NULL;
-    EFI_HANDLE* handles = NULL;
+    EFI_DEVICE_PATH_PROTOCOL *device_path_protocols = NULL;
+    EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *text_input_protocols = NULL;
+    EFI_HANDLE *handles = NULL;
     UINTN number_of_handles = 0;
     UINTN number_of_device_path_protocols = 0;
     UINTN number_of_text_input_protocols = 0;
@@ -115,7 +127,7 @@ EFI_STATUS print_input_text_handle_names(
     EFI_STATUS status = get_protocols(
         imageHandle,
         &handles,
-        (VOID**)&text_input_protocols,
+        (VOID **) &text_input_protocols,
         &number_of_handles,
         &number_of_text_input_protocols,
         &gEfiSimpleTextInputExProtocolGuid
@@ -150,7 +162,7 @@ EFI_STATUS print_input_text_handle_names(
         status = get_protocols(
             imageHandle,
             &handles,
-            (VOID**)&device_path_protocols,
+            (VOID **) &device_path_protocols,
             &number_of_handles,
             &number_of_device_path_protocols,
             &gEfiDevicePathProtocolGuid
@@ -177,7 +189,8 @@ EFI_STATUS print_input_text_handle_names(
             );
         }
 
-        if (device_path_protocols != NULL) {}
+        if (device_path_protocols != NULL) {
+        }
     }
 
     return EFI_SUCCESS;

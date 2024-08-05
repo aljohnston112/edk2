@@ -37,4 +37,6 @@ EFI_STATUS wait_for_scan_code(
     UINT16 unicode_char
 );
 
+EFI_STATUS wait_for_any_key();
+
 #endif //TEXT_INPUT_LIB_H

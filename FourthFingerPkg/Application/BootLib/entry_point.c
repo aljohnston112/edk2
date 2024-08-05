@@ -40,6 +40,8 @@ UefiMain(
         "Main failed"
     );
 
+    clear_console();
+
     Print(L"\n\rPress enter to exit\n\r");
 
     status = wait_for_unicode(UNICODE_ENTER);
