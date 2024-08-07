@@ -9,10 +9,10 @@ EFI_STATUS close_protocols_and_free_pool(
     VOID **protocols
 );
 
-EFI_STATUS get_protocols(
+EFI_STATUS get_protocol_from_handles(
     EFI_HANDLE imageHandle,
     EFI_HANDLE **handles,
-    VOID **text_input_protocols,
+    VOID **protocols,
     UINTN *number_of_handles,
     UINTN *number_of_protocols,
     EFI_GUID *protocolGuid

@@ -5,14 +5,17 @@
 
 #include "handle_lib.h"
 #include "protocol_lib.h"
+
+#include <text_input_lib.h>
+
 #include "status_lib.h"
 
 EFI_STATUS close_protocols_and_free_pool(
-    EFI_HANDLE *handles,
+    EFI_HANDLE* handles,
     UINTN number_of_protocols,
-    EFI_GUID *protocolGuid,
+    EFI_GUID* protocolGuid,
     EFI_HANDLE imageHandle,
-    VOID **protocols
+    VOID** protocols
 ) {
     EFI_STATUS status = EFI_SUCCESS;
     for (UINTN i = 0; i < number_of_protocols; i++) {
@@ -35,13 +38,13 @@ EFI_STATUS close_protocols_and_free_pool(
     return status;
 }
 
-EFI_STATUS get_protocols(
+EFI_STATUS get_protocol_from_handles(
     const EFI_HANDLE imageHandle,
-    EFI_HANDLE **handles,
-    VOID **protocols,
-    UINTN *number_of_handles,
-    UINTN *number_of_protocols,
-    EFI_GUID *protocolGuid
+    EFI_HANDLE** handles,
+    VOID** protocols,
+    UINTN* number_of_handles,
+    UINTN* number_of_protocols,
+    EFI_GUID* protocolGuid
 ) {
     bool userSuppliedHandles = true;
 
@@ -67,19 +70,19 @@ EFI_STATUS get_protocols(
         return EFI_SUCCESS; \
     } while(0)
 
-    if(*handles == NULL){
+    if (*handles == NULL) {
         userSuppliedHandles = false;
         *number_of_handles = 0;
         EFI_STATUS status = get_handles(
-                handles,
-                number_of_handles,
-                protocolGuid
+            handles,
+            number_of_handles,
+            protocolGuid
         );
         RETURN_IF_NOT_SUCCESS(
-             status,
+            status,
             "Failed to get handles"
         );
-        if(*handles == NULL){
+        if (*handles == NULL) {
             RETURN_IF_NOT_SUCCESS(
                 EFI_ABORTED,
                 "Handles were null"
@@ -103,7 +106,7 @@ EFI_STATUS get_protocols(
             status = gBS->OpenProtocol(
                 (*handles)[i],
                 protocolGuid,
-                (VOID **) (char*)((*protocols) + (sizeof(*protocols) * i)),
+                (VOID**)((UINT8*)(*protocols) + (sizeof(*protocols) * i)),
                 imageHandle,
                 NULL,
                 EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL
@@ -111,14 +114,14 @@ EFI_STATUS get_protocols(
 
             ++(*number_of_protocols);
 
-            if(status == EFI_UNSUPPORTED){
+            if (status == EFI_UNSUPPORTED) {
                 FREE(
                     status,
                     "Handles did not support protocol"
                 );
             }
 
-            if(status == EFI_ACCESS_DENIED){
+            if (status == EFI_ACCESS_DENIED) {
                 FREE(
                     status,
                     "Handle protocl access denied"

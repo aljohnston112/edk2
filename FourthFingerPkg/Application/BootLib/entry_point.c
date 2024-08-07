@@ -1,3 +1,4 @@
+#include <handle_lib.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
@@ -23,7 +24,8 @@ EFI_STATUS main_entry(
     // status = print_input_text_handle_names(imageHandle);
     // status = print_efi_system_table();
     // PrintEfiTime(),
-    status = print_memory_map();
+    // status = print_memory_map();
+    status = get_all_handles(imageHandle);
 
     return status;
 }

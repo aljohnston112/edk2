@@ -124,7 +124,7 @@ EFI_STATUS print_input_text_handle_names(
         ); \
         return EFI_SUCCESS; \
     } while(0)
-    EFI_STATUS status = get_protocols(
+    EFI_STATUS status = get_protocol_from_handles(
         imageHandle,
         &handles,
         (VOID **) &text_input_protocols,
@@ -159,7 +159,7 @@ EFI_STATUS print_input_text_handle_names(
     }
 
     if (handles != NULL) {
-        status = get_protocols(
+        status = get_protocol_from_handles(
             imageHandle,
             &handles,
             (VOID **) &device_path_protocols,

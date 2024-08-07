@@ -12,6 +12,7 @@
   handle_lib.c
   memory_lib/memory_lib.c
   memory_lib/efi_memory_type.h
+  page_lib.c
   protocol_lib.c
   status_lib.c
   system_table_lib.c
@@ -20,6 +21,7 @@
 
 [Packages]
   MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
 
 [LibraryClasses]
   UefiApplicationEntryPoint
@@ -27,3 +29,9 @@
 
 [Protocols]
   gEfiSimpleTextInputExProtocolGuid
+  gEfiLoadedImageProtocolGuid
+  gEfiDevicePathProtocolGuid
+  gEfiLoadPeImageProtocolGuid
+  gEfiDecompressProtocolGuid
+  gEfiFirmwareVolume2ProtocolGuid
+  gEfiFirmwareVolume2ProtocolGuid
