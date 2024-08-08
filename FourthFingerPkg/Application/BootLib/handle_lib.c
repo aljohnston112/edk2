@@ -15,7 +15,7 @@
 #include "status_lib.h"
 #include "text_input_lib.h"
 
-EFI_STATUS free_handle_pool(EFI_HANDLE* handles) {
+EFI_STATUS free_handle_pool(EFI_HANDLE *handles) {
     EFI_STATUS status = EFI_SUCCESS;
     if (handles != NULL) {
         status = gBS->FreePool(handles);
@@ -43,9 +43,9 @@ EFI_STATUS check_locate_handle_status(const EFI_STATUS status) {
 }
 
 EFI_STATUS get_handles(
-    EFI_HANDLE** handles,
-    UINTN* number_of_handles,
-    EFI_GUID* protocol
+    EFI_HANDLE **handles,
+    UINTN *number_of_handles,
+    EFI_GUID *protocol
 ) {
     *number_of_handles = 0;
     EFI_STATUS status = gBS->LocateHandleBuffer(
@@ -73,83 +73,57 @@ EFI_STATUS get_handles(
     return EFI_SUCCESS;
 }
 
-void* align_ptr(void* ptr, const UINTN alignment) {
-    return (void*)((UINTN)((UINT8*)ptr + (alignment - 1)) & ~(alignment - 1));
+void *align_ptr(void *ptr, const UINTN alignment) {
+    return (void *) ((UINTN) ((UINT8 *) ptr + (alignment - 1)) & ~(alignment - 1));
 }
 
-EFI_STATUS print_device_path_node_info(EFI_DEVICE_PATH_PROTOCOL* protocol) {
+void print_guid(const EFI_GUID *guid) {
     AsciiPrint(
-        "Type: 0x%X\nSubtype: 0x%X\nLength of Data: %u\n",
+        "{ 0x%8X 0x%4X 0x%4X { 0x%2X 0x%2X 0x%2X 0x%2X 0x%2X 0x%2X 0x%2X 0x%2X }}",
+        guid->Data1,
+        guid->Data2,
+        guid->Data3,
+        guid->Data4[0],
+        guid->Data4[1],
+        guid->Data4[2],
+        guid->Data4[3],
+        guid->Data4[4],
+        guid->Data4[5],
+        guid->Data4[6],
+        guid->Data4[7]
+    );
+}
+
+EFI_STATUS print_device_path_node_info(EFI_DEVICE_PATH_PROTOCOL *protocol) {
+    AsciiPrint(
+        "    Type: 0x%X\n    Subtype: 0x%X\n    Length of Data: %u\n",
         protocol->Type,
         protocol->SubType,
         DevicePathNodeLength(protocol)
     );
     switch (protocol->Type) {
-    case 4:
-        switch (protocol->SubType) {
-        case 6:
-            for (UINTN i = 0; i < 64; ++i) {
-                AsciiPrint("Byte %2u: 0x%2X | ", i, *((UINT8*)protocol + i));
-                if((i + 1) % 4 == 0) {
-                    AsciiPrint("\n");
-                }
-            }
+        case 4:
+            switch (protocol->SubType) {
+                case 6:
+                    AsciiPrint("    Firmware File Media Device Path\n");
+                    const EFI_GUID *firmware_file_name = (EFI_GUID *) ((UINT8 *) protocol + 4);
+                    AsciiPrint("    GUID: ");
+                    print_guid(firmware_file_name);
+                    AsciiPrint("\n\n");
+                    break;
+                case 7:
+                    AsciiPrint("    Firmware Volume Media Device Path\n");
+                    const EFI_GUID *firmware_volume_name = (EFI_GUID *) ((UINT8 *) protocol + 4);
+                    AsciiPrint("    GUID: ");
+                    print_guid(firmware_volume_name);
+                    AsciiPrint("\n\n");
 
-            void* firmware_file = align_ptr(protocol + 4, 8);
-
-            UINTN file_size;
-            UINT8 data_size;
-            if (IS_FFS_FILE2(firmware_file)) {
-                AsciiPrint("FFS_FILE2\n");
-                file_size = FFS_FILE2_SIZE(firmware_file);
-                const EFI_FFS_FILE_HEADER2* file = firmware_file;
-                data_size = *file->Size;
-            } else {
-                AsciiPrint("FFS_FILE\n");
-                const EFI_FFS_FILE_HEADER* file = firmware_file;
-                file_size = FFS_FILE_SIZE(firmware_file);
-                data_size = *file->Size;
+                    break;
+                default:
+                    break;
             }
-            AsciiPrint("Firware file size: %u\n", file_size);
-            AsciiPrint("Firware file data size: %u\n", data_size);
-            break;
-        case 7:
-            for (UINTN i = 0; i < 64; ++i) {
-                AsciiPrint("Byte %2u: 0x%2X | ", i, *((UINT8*)protocol + i));
-                if((i + 1) % 4 == 0) {
-                    AsciiPrint("\n");
-                }
-            }
-
-            EFI_FIRMWARE_VOLUME_HEADER* firmware_volume =
-                (EFI_FIRMWARE_VOLUME_HEADER*) ((UINT8*)protocol + 4);
-            EFI_GUID guid = firmware_volume->FileSystemGuid;
-            if (CompareGuid(&guid, &gEfiFirmwareVolume2ProtocolGuid)) {
-                AsciiPrint("EFI_FIRMWARE_FILE_SYSTEM2_GUID\n");
-            } else {
-                AsciiPrint("Invalid file system format\n");
-                AsciiPrint(
-                    "Invalid GUID: { 0x%8X 0x%4X 0x%4X { 0x%2X 0x%2X 0x%2X 0x%2X 0x%2X 0x%2X 0x%2X 0x%2X }}\n",
-                    guid.Data1,
-                    guid.Data2,
-                    guid.Data3,
-                    guid.Data4[0],
-                    guid.Data4[1],
-                    guid.Data4[2],
-                    guid.Data4[3],
-                    guid.Data4[4],
-                    guid.Data4[5],
-                    guid.Data4[6],
-                    guid.Data4[7]
-                );
-            }
-
-            break;
         default:
             break;
-        }
-    default:
-        break;
     }
     return EFI_SUCCESS;
 }
@@ -160,13 +134,12 @@ EFI_STATUS get_all_handles(
     __label__ error;
 
     EFI_STATUS status = EFI_SUCCESS;
-    char* error_string = "Success";
-    EFI_HANDLE* handle_buffer = NULL;
-    EFI_GUID** protocol_gui_buffer = NULL;
+    char *error_string = "Success";
+    EFI_HANDLE *handle_buffer = NULL;
+    EFI_GUID **protocol_gui_buffer = NULL;
     UINTN guid_count = 0;
 
-    void free_pools()
-    {
+    void free_pools() {
         if (handle_buffer != NULL) {
             gBS->FreePool(handle_buffer);
         }
@@ -177,14 +150,12 @@ EFI_STATUS get_all_handles(
         }
     }
 
-    void free()
-    {
+    void free() {
         free_pools();
         goto error;
     }
 
-    BOOLEAN free_on_error(EFI_STATUS s, char* string_on_error)
-    {
+    BOOLEAN free_on_error(EFI_STATUS s, char *string_on_error) {
         status = s;
         if (EFI_ERROR(s)) {
             error_string = string_on_error;
@@ -206,15 +177,14 @@ EFI_STATUS get_all_handles(
     RETURN_IF_NOT_SUCCESS(status, "Error locating handles");
 
     UINTN number_of_pages = handle_count;
-    EFI_STATUS on_next_page(UINTN current_page)
-    {
+    EFI_STATUS on_next_page(UINTN current_page) {
         clear_console();
         AsciiPrint(
-            "%u out of %u\n",
+            "%u out of %u\n\n",
             current_page + 1,
             number_of_pages
         );
-        EFI_HANDLE* current_handle = &handle_buffer[current_page];
+        EFI_HANDLE *current_handle = &handle_buffer[current_page];
         status = gBS->ProtocolsPerHandle(
             *current_handle,
             &protocol_gui_buffer,
@@ -222,28 +192,16 @@ EFI_STATUS get_all_handles(
         );
         free_on_error(status, "Failed to get protocols for handle");
         for (UINTN j = 0; j < guid_count; j++) {
-            AsciiPrint(
-                "GUID: { 0x%8X 0x%4X 0x%4X { 0x%2X 0x%2X 0x%2X 0x%2X 0x%2X 0x%2X 0x%2X 0x%2X }}\n",
-                protocol_gui_buffer[j]->Data1,
-                protocol_gui_buffer[j]->Data2,
-                protocol_gui_buffer[j]->Data3,
-                protocol_gui_buffer[j]->Data4[0],
-                protocol_gui_buffer[j]->Data4[1],
-                protocol_gui_buffer[j]->Data4[2],
-                protocol_gui_buffer[j]->Data4[3],
-                protocol_gui_buffer[j]->Data4[4],
-                protocol_gui_buffer[j]->Data4[5],
-                protocol_gui_buffer[j]->Data4[6],
-                protocol_gui_buffer[j]->Data4[7]
-            );
-
             if (CompareGuid(protocol_gui_buffer[j], &gEfiLoadedImageProtocolGuid)) {
                 AsciiPrint("EFI_LOADED_IMAGE_PROTOCOL\n");
-                EFI_LOADED_IMAGE_PROTOCOL* protocol = NULL;
+                AsciiPrint("GUID: ");
+                print_guid(protocol_gui_buffer[j]);
+                AsciiPrint("\n");
+                EFI_LOADED_IMAGE_PROTOCOL *protocol = NULL;
                 status = gBS->OpenProtocol(
                     *current_handle,
                     &gEfiLoadedImageProtocolGuid,
-                    (VOID**)&protocol,
+                    (VOID **) &protocol,
                     image_handle,
                     NULL,
                     EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL
@@ -263,19 +221,22 @@ EFI_STATUS get_all_handles(
                     );
                 }
             } else if (CompareGuid(protocol_gui_buffer[j], &gEfiDevicePathProtocolGuid)) {
-                AsciiPrint("EFI_DEVICE_PATH_PROTOCOL_GUID\n");
-                EFI_DEVICE_PATH_PROTOCOL* protocol = NULL;
+                AsciiPrint("EFI_DEVICE_PATH_PROTOCOL\n");
+                AsciiPrint("GUID: ");
+                print_guid(protocol_gui_buffer[j]);
+                AsciiPrint("\n");
+                EFI_DEVICE_PATH_PROTOCOL *protocol = NULL;
                 status = gBS->OpenProtocol(
                     *current_handle,
                     &gEfiDevicePathProtocolGuid,
-                    (VOID**)&protocol,
+                    (VOID **) &protocol,
                     image_handle,
                     NULL,
                     EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL
                 );
                 free_on_error(
                     status,
-                    "Failed to open EFI_DEVICE_PATH_PROTOCOL_GUID protocol"
+                    "Failed to open EFI_DEVICE_PATH_PROTOCOL protocol"
                 );
 
                 if (protocol != NULL) {
@@ -284,25 +245,65 @@ EFI_STATUS get_all_handles(
                         status,
                         "Failed to print device path node info"
                     );
+                } else if (CompareGuid(protocol_gui_buffer[j], &gEfiLoadedImageDevicePathProtocolGuid)) {
+                    AsciiPrint("EFI_LOADED_IMAGE_DEVICE_PATH_PROTOCOL\n");
+                    AsciiPrint("GUID: ");
+                    print_guid(protocol_gui_buffer[j]);
+                    AsciiPrint("\n");
+                    EFI_DEVICE_PATH_PROTOCOL *protocol = NULL;
+                    status = gBS->OpenProtocol(
+                        *current_handle,
+                        &gEfiLoadedImageDevicePathProtocolGuid,
+                        (VOID **) &protocol,
+                        image_handle,
+                        NULL,
+                        EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL
+                    );
+                    free_on_error(
+                        status,
+                        "Failed to open EFI_DEVICE_PATH_PROTOCOL protocol"
+                    );
+
+                    if (protocol != NULL) {
+                        status = print_device_path_node_info(protocol);
+                        free_on_error(
+                            status,
+                            "Failed to print device path node info"
+                        );
+                    }
+                } else if (CompareGuid(protocol_gui_buffer[j], &gEfiFirmwareVolume2ProtocolGuid)) {
+                    AsciiPrint("EFI_FIRMWARE_VOLUME2_PROTOCOL\n");
+                    AsciiPrint("GUID: ");
+                    print_guid(protocol_gui_buffer[j]);
+                    AsciiPrint("\n\n");
+                } else if (CompareGuid(protocol_gui_buffer[j], &gEfiFirmwareVolumeBlock2ProtocolGuid)) {
+                    AsciiPrint("EFI_FIRMWARE_VOLUME_BLOCK2_PROTOCOL\n");
+                    AsciiPrint("GUID: ");
+                    print_guid(protocol_gui_buffer[j]);
+                    AsciiPrint("\n\n");
+                } else {
+                    AsciiPrint("GUID: ");
+                    print_guid(protocol_gui_buffer[j]);
+                    AsciiPrint("\n\n");
                 }
             }
+            gBS->FreePool(protocol_gui_buffer);
+            protocol_gui_buffer = NULL;
+            return status;
         }
-        gBS->FreePool(protocol_gui_buffer);
-        protocol_gui_buffer = NULL;
+
+        // Create event
+
+        start_paging(
+            free_on_error,
+            on_next_page,
+            free,
+            number_of_pages
+        );
+
+        while (1) {
+        }
+    error:
+        RETURN_IF_NOT_SUCCESS(status, error_string);
         return status;
     }
-
-    // Create event
-
-    start_paging(
-        free_on_error,
-        on_next_page,
-        free,
-        number_of_pages
-    );
-
-    while (1) {}
-error:
-    RETURN_IF_NOT_SUCCESS(status, error_string);
-    return status;
-}

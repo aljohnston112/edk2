@@ -34,4 +34,4 @@
   gEfiLoadPeImageProtocolGuid
   gEfiDecompressProtocolGuid
   gEfiFirmwareVolume2ProtocolGuid
-  gEfiFirmwareVolume2ProtocolGuid
+  gEfiFirmwareVolumeBlock2ProtocolGuid
