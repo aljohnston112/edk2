@@ -7,6 +7,7 @@ enum Unicode {
     UEFI_KEY_RIGHT = 0x0003,
     UEFI_KEY_LEFT = 0x0004,
 
+    UNICODE_SPACE = 0x20,
     UNICODE_ENTER = 0x0D,
 
     UNICODE_ZERO = 0x0030,

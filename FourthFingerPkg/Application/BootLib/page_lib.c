@@ -22,6 +22,7 @@ void start_paging(
         if (free_on_error(status, "Failed to get protocols for handle")) {
             goto end;
         }
+        AsciiPrint("\nPress enter to go back\n");
 
         if (user_done == FALSE) {
             EFI_INPUT_KEY key;

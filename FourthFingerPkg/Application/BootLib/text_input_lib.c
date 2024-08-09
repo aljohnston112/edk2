@@ -1,17 +1,17 @@
 #include <stdlib.h>
 
 #include <Library/UefiLib.h>
+#include <Library/UefiBootServicesTableLib.h>
 
 #include "handle_lib.h"
 #include "protocol_lib.h"
 #include "status_lib.h"
 #include "text_input_lib.h"
 
-#include <Library/UefiBootServicesTableLib.h>
 
 RETURN_STATUS wait_for_key() {
     UINTN index = 0;
-    const EFI_STATUS status = gBS->WaitForEvent(
+    EFI_STATUS status = gBS->WaitForEvent(
         1,
         &gST->ConIn->WaitForKey,
         &index
@@ -20,11 +20,12 @@ RETURN_STATUS wait_for_key() {
         status,
         "Failed to wait for key"
     );
+
     return EFI_SUCCESS;
 }
 
 EFI_STATUS wait_for_key_and_get_it(
-    EFI_INPUT_KEY *key
+    EFI_INPUT_KEY* key
 ) {
     EFI_STATUS status = wait_for_key();
     RETURN_IF_NOT_SUCCESS(
@@ -32,11 +33,10 @@ EFI_STATUS wait_for_key_and_get_it(
         "Failed to wait for key"
     );
     while ((status = gST->ConIn->ReadKeyStroke(
-                gST->ConIn,
-                key
-            )) == EFI_NOT_READY
-    ) {
-    }
+            gST->ConIn,
+            key
+        )) == EFI_NOT_READY
+    ) {}
 
     RETURN_IF_NOT_SUCCESS(
         status,
@@ -56,7 +56,8 @@ EFI_STATUS wait_for_unicode(
             status,
             "Failed to wait for key"
         );
-    } while (key.UnicodeChar != unicode_char);
+    }
+    while (key.UnicodeChar != unicode_char);
     return status;
 }
 
@@ -71,7 +72,8 @@ EFI_STATUS wait_for_scan_code(
             status,
             "Failed to wait for key"
         );
-    } while (key.ScanCode != unicode_char);
+    }
+    while (key.ScanCode != unicode_char);
     return status;
 }
 
@@ -89,9 +91,9 @@ EFI_STATUS wait_for_any_key() {
 EFI_STATUS print_input_text_handle_names(
     EFI_HANDLE imageHandle
 ) {
-    EFI_DEVICE_PATH_PROTOCOL *device_path_protocols = NULL;
-    EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *text_input_protocols = NULL;
-    EFI_HANDLE *handles = NULL;
+    EFI_DEVICE_PATH_PROTOCOL* device_path_protocols = NULL;
+    EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL* text_input_protocols = NULL;
+    EFI_HANDLE* handles = NULL;
     UINTN number_of_handles = 0;
     UINTN number_of_device_path_protocols = 0;
     UINTN number_of_text_input_protocols = 0;
@@ -127,7 +129,7 @@ EFI_STATUS print_input_text_handle_names(
     EFI_STATUS status = get_protocol_from_handles(
         imageHandle,
         &handles,
-        (VOID **) &text_input_protocols,
+        (VOID**)&text_input_protocols,
         &number_of_handles,
         &number_of_text_input_protocols,
         &gEfiSimpleTextInputExProtocolGuid
@@ -162,7 +164,7 @@ EFI_STATUS print_input_text_handle_names(
         status = get_protocol_from_handles(
             imageHandle,
             &handles,
-            (VOID **) &device_path_protocols,
+            (VOID**)&device_path_protocols,
             &number_of_handles,
             &number_of_device_path_protocols,
             &gEfiDevicePathProtocolGuid
@@ -189,8 +191,7 @@ EFI_STATUS print_input_text_handle_names(
             );
         }
 
-        if (device_path_protocols != NULL) {
-        }
+        if (device_path_protocols != NULL) {}
     }
 
     return EFI_SUCCESS;

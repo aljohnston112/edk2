@@ -6,6 +6,11 @@ all: build compiledb run \
      FourthFingerPkg.dec \
      FourthFingerPkg.dsc
 
+all_debug: build compiledb run_debug \
+	 Application/BootLib \
+     FourthFingerPkg.dec \
+     FourthFingerPkg.dsc
+
 build:
 	pwd && make VERBOSE=y _build &> $(MAKE_OUTPUT)
 
@@ -19,7 +24,14 @@ run: $(BUILD_DIR)/$(EFI_FILE)
 	cd .. && pwd && \
 	cp ./Build/FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg.efi ./Build/EmulatorX64/DEBUG_GCC5/X64/FourthFingerPkg.efi && \
 	echo "run" > $(GDB_COMMANDS) && \
-	echo "y" >> $(GDB_COMMANDS) && \
+    echo "y" >> $(GDB_COMMANDS) && \
+	EmulatorPkg/build.sh run < $(GDB_COMMANDS) && \
+	rm $(GDB_COMMANDS)
+
+run_debug: $(BUILD_DIR)/$(EFI_FILE)
+	cd .. && pwd && \
+	cp ./Build/FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg.efi ./Build/EmulatorX64/DEBUG_GCC5/X64/FourthFingerPkg.efi && \
+	echo "add-symbol-file ../../../FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg.debug" > $(GDB_COMMANDS) && \
 	EmulatorPkg/build.sh run < $(GDB_COMMANDS) && \
 	rm $(GDB_COMMANDS)
 

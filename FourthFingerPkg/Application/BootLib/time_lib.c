@@ -5,6 +5,8 @@
 #include "status_lib.h"
 #include "time_lib.h"
 
+#include <text_input_lib.h>
+
 EFI_STATUS
 PrintEfiTime() {
     EFI_TIME* time;
@@ -139,6 +141,10 @@ PrintEfiTime() {
             "Time was null*"
         );
     }
+
+    AsciiPrint("\nPress enter to return\n");
+    status = wait_for_unicode(UNICODE_ENTER);
+    RETURN_IF_NOT_SUCCESS(status , "Failed to wait for key");
 
     return EFI_SUCCESS;
 }

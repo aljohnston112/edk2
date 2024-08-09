@@ -9,6 +9,7 @@
 [Sources]
   console_lib.c
   entry_point.c
+  guid_lib.c
   handle_lib.c
   memory_lib/memory_lib.c
   memory_lib/efi_memory_type.h
@@ -30,8 +31,17 @@
 [Protocols]
   gEfiSimpleTextInputExProtocolGuid
   gEfiLoadedImageProtocolGuid
+  gEfiLoadedImageDevicePathProtocolGuid
   gEfiDevicePathProtocolGuid
   gEfiLoadPeImageProtocolGuid
   gEfiDecompressProtocolGuid
   gEfiFirmwareVolume2ProtocolGuid
   gEfiFirmwareVolumeBlock2ProtocolGuid
+  gEfiPciRootBridgeIoProtocolGuid
+
+[Guids]
+  gEfiAcpi10TableGuid
+  gEfiAcpi10TableGuid
+  gEfiAcpi20TableGuid
+  gEfiSmbiosTableGuid
+  gEfiSmbios3TableGuid

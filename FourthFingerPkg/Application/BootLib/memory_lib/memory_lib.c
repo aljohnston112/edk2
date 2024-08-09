@@ -181,7 +181,7 @@ EFI_STATUS page_through_memory_map(efi_memory_descriptor_list memory_descriptor_
             AsciiPrint("Virtual Start Address: 0x%X\n", memory_descriptor->VirtualStart);
             AsciiPrint("Number of Pages: %u\n", memory_descriptor->NumberOfPages);
             print_memory_attributes(memory_descriptor->Attribute);
-            AsciiPrint("Press Enter to Go Back\n");
+            AsciiPrint("\nPress Enter to Go Back\n");
 
             while (valid_key == FALSE) {
                 status = wait_for_key_and_get_it(&key);
@@ -351,7 +351,7 @@ EFI_STATUS print_memory_map() {
             AsciiPrint(efi_memory_type_strings[i]);
             AsciiPrint("\n");
         }
-        AsciiPrint("Enter. Go Back\n");
+        AsciiPrint("\nPress Enter to Go Back\n");
 
         BOOLEAN valid_key = FALSE;
         EFI_INPUT_KEY key;
