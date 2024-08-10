@@ -167,6 +167,17 @@ void process_smbios30(
     }
 }
 
+void process_acpi_20(
+    EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER *table,
+    OnError free_on_error
+) {
+    if(table->Signature != (UINT64)"RSD PTR ") {
+        free_on_error(EFI_ABORTED, "Invalid ACPI 2.0+ table");
+    } else {
+        AsciiPrint("Revision: %u", table->Revision);
+    }
+}
+
 EFI_STATUS
 print_efi_system_table() {
     __label__ error;
@@ -255,8 +266,11 @@ print_efi_system_table() {
         AsciiPrint("\n");
         if (CompareGuid(&gEfiAcpi10TableGuid, &guid)) {
             AsciiPrint("    ACPI 1.0 RSDP\n");
-        } else if (CompareGuid(&gEfiAcpi10TableGuid, &guid)) {
+        } else if (CompareGuid(&gEfiAcpi20TableGuid, &guid)) {
             AsciiPrint("    ACPI 2.0+ RSDP\n");
+            EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER* table =
+                configuration_table[current_page].VendorTable;
+            process_acpi_20(table, free_on_error);
         } else if (CompareGuid(&gEfiSmbiosTableGuid, &guid)) {
             AsciiPrint("    SMBIOS 2.1\n");
         } else if (CompareGuid(&gEfiSmbios3TableGuid, &guid)) {
