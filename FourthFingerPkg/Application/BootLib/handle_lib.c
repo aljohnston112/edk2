@@ -249,12 +249,10 @@ EFI_STATUS get_all_handles(
         &handle_count,
         &handle_buffer
     );
-
     check_locate_handle_status(status);
     RETURN_IF_NOT_SUCCESS(status, "Error locating handles");
 
     UINTN number_of_pages = handle_count;
-
     EFI_STATUS on_next_page(UINTN current_page)
     {
         status = clear_console();
