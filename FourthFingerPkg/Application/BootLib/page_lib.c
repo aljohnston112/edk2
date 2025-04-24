@@ -20,6 +20,7 @@ void start_paging(
         BOOLEAN valid_key = FALSE;
         EFI_STATUS status = on_next_page(current_page);
         if (free_on_error(status, "Failed to get protocols for handle")) {
+            wait_for_any_key();
             goto end;
         }
         AsciiPrint("\nPress enter to go back\n");

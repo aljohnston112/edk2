@@ -8,6 +8,9 @@
 #include "console_lib.h"
 #include "guid_lib.h"
 #include "handle_lib.h"
+
+#include <text_input_lib.h>
+
 #include "page_lib.h"
 #include "status_lib.h"
 
@@ -111,7 +114,7 @@ EFI_STATUS process_pci_root_bridge(EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL* protocol) {
     UINT8* resources = NULL;
     EFI_STATUS status = protocol->Configuration(
         protocol,
-        (void*)resources
+        (void**)&resources
     );
     RETURN_IF_NOT_SUCCESS(
         status,
@@ -241,15 +244,17 @@ EFI_STATUS get_all_handles(
     UINTN handle_count = 0;
     status = gBS->LocateHandleBuffer(
         ByProtocol,
-        &gEfiDevicePathProtocolGuid,
+        &gEfiPciRootBridgeIoProtocolGuid,
         NULL,
         &handle_count,
         &handle_buffer
     );
+
     check_locate_handle_status(status);
     RETURN_IF_NOT_SUCCESS(status, "Error locating handles");
 
     UINTN number_of_pages = handle_count;
+
     EFI_STATUS on_next_page(UINTN current_page)
     {
         status = clear_console();

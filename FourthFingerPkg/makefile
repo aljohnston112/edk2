@@ -20,15 +20,13 @@ _build:
 compiledb:
 	pwd && compiledb --parse $(MAKE_OUTPUT) && rm $(MAKE_OUTPUT)
 
-run: $(BUILD_DIR)/$(EFI_FILE)
+run:
 	cd .. && pwd && \
-	cp ./Build/FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg.efi ./Build/EmulatorX64/DEBUG_GCC5/X64/FourthFingerPkg.efi && \
-	echo "run" > $(GDB_COMMANDS) && \
-    echo "y" >> $(GDB_COMMANDS) && \
-	EmulatorPkg/build.sh run < $(GDB_COMMANDS) && \
-	rm $(GDB_COMMANDS)
+	cd ./Build/FourthFingerPkg/DEBUG_GCC/X64/ && \
+	qemu-system-x86_64 -enable-kvm -cpu host -drive if=pflash,format=raw,readonly=on,file=../../../OvmfX64/DEBUG_GCC/FV/OVMF_CODE.fd -drive if=pflash,format=raw,file=../../../OvmfX64/DEBUG_GCC/FV/OVMF_VARS.fd -drive file=fat:rw:.,format=raw
 
-run_debug: $(BUILD_DIR)/$(EFI_FILE)
+
+run_debug:
 	cd .. && pwd && \
 	cp ./Build/FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg.efi ./Build/EmulatorX64/DEBUG_GCC5/X64/FourthFingerPkg.efi && \
 	echo "add-symbol-file ../../../FourthFingerPkg/DEBUG_GCC/X64/FourthFingerPkg.debug" > $(GDB_COMMANDS) && \

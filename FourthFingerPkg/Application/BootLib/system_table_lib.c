@@ -7,6 +7,7 @@
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 
+#include "acpi_lib.h"
 #include "console_lib.h"
 #include "guid_lib.h"
 #include "page_lib.h"
@@ -14,35 +15,91 @@
 #include "system_table_lib.h"
 #include "text_input_lib.h"
 
+UINT64 convert_to_uint64(const MISC_BIOS_CHARACTERISTICS* characteristics) {
+    UINT64 result = 0;
+
+    result |= (UINT64)characteristics->Reserved << 0;
+    result |= (UINT64)characteristics->Unknown << 2;
+    result |= (UINT64)characteristics->BiosCharacteristicsNotSupported << 3;
+    result |= (UINT64)characteristics->IsaIsSupported << 4;
+    result |= (UINT64)characteristics->McaIsSupported << 5;
+    result |= (UINT64)characteristics->EisaIsSupported << 6;
+    result |= (UINT64)characteristics->PciIsSupported << 7;
+    result |= (UINT64)characteristics->PcmciaIsSupported << 8;
+    result |= (UINT64)characteristics->PlugAndPlayIsSupported << 9;
+    result |= (UINT64)characteristics->ApmIsSupported << 10;
+    result |= (UINT64)characteristics->BiosIsUpgradable << 11;
+    result |= (UINT64)characteristics->BiosShadowingAllowed << 12;
+    result |= (UINT64)characteristics->VlVesaIsSupported << 13;
+    result |= (UINT64)characteristics->EscdSupportIsAvailable << 14;
+    result |= (UINT64)characteristics->BootFromCdIsSupported << 15;
+    result |= (UINT64)characteristics->SelectableBootIsSupported << 16;
+    result |= (UINT64)characteristics->RomBiosIsSocketed << 17;
+    result |= (UINT64)characteristics->BootFromPcmciaIsSupported << 18;
+    result |= (UINT64)characteristics->EDDSpecificationIsSupported << 19;
+    result |= (UINT64)characteristics->JapaneseNecFloppyIsSupported << 20;
+    result |= (UINT64)characteristics->JapaneseToshibaFloppyIsSupported << 21;
+    result |= (UINT64)characteristics->Floppy525_360IsSupported << 22;
+    result |= (UINT64)characteristics->Floppy525_12IsSupported << 23;
+    result |= (UINT64)characteristics->Floppy35_720IsSupported << 24;
+    result |= (UINT64)characteristics->Floppy35_288IsSupported << 25;
+    result |= (UINT64)characteristics->PrintScreenIsSupported << 26;
+    result |= (UINT64)characteristics->Keyboard8042IsSupported << 27;
+    result |= (UINT64)characteristics->SerialIsSupported << 28;
+    result |= (UINT64)characteristics->PrinterIsSupported << 29;
+    result |= (UINT64)characteristics->CgaMonoIsSupported << 30;
+    result |= (UINT64)characteristics->NecPc98 << 31;
+    result |= (UINT64)characteristics->ReservedForVendor << 32;
+
+    return result;
+}
+
+void print_chars(const CHAR8* p, const UINTN number) {
+    for (UINTN i = 0; i < number; ++i) {
+        const CHAR8 ch = *(p + i);
+        AsciiPrint("Char %2u: 0x%2X %c | ", i + 1, (UINT8)ch, (ch >= 32 && ch <= 126) ? ch : '.');
+        if (i % 4 == 0) {
+            AsciiPrint("\n");
+        }
+    }
+    AsciiPrint("\n");
+}
+
 EFI_STATUS extract_smbios_strings(
-    UINT8* string_start,
+    CHAR8* string_start,
     UINTN* string_count,
     CHAR8*** strings
 ) {
     (*string_count) = 0;
-    UINT8* current_string = string_start;
-    while (*current_string != 0 || *(current_string + 1) != 0) {
+    CHAR8* current_string = string_start;
+
+    if (*current_string != 0 || *(current_string + 1) != 0) {
         ++(*string_count);
-        current_string += AsciiStrLen((CHAR8*)current_string) + 1;
-    }
+        current_string += AsciiStrLen(current_string) + 1;
 
-    EFI_STATUS status = gBS->AllocatePool(
-        EfiLoaderData,
-        (*string_count) * sizeof(CHAR8*),
-        (void**)strings
-    );
-    if (EFI_ERROR(status)) {
-        *string_count = 0;
-        RETURN_IF_NOT_SUCCESS(
-            status,
-            "Failed to allocate for strings"
+        while (*(current_string - 1) != 0 || *(current_string) != 0) {
+            ++(*string_count);
+            current_string += AsciiStrLen(current_string) + 1;
+        }
+
+        EFI_STATUS status = gBS->AllocatePool(
+            EfiLoaderData,
+            (*string_count) * sizeof(CHAR8*),
+            (void**)strings
         );
-    }
+        if (EFI_ERROR(status) || (*strings) == NULL) {
+            (*string_count) = 0;
+            RETURN_IF_NOT_SUCCESS(
+                status,
+                "Failed to allocate for strings"
+            );
+        }
 
-    current_string = string_start;
-    for (UINTN i = 0; i < (*string_count); i++) {
-        (*strings)[i] = (CHAR8*)current_string;
-        current_string += AsciiStrLen((*strings)[i]) + 1;
+        current_string = string_start;
+        for (UINTN i = 0; i < (*string_count); i++) {
+            (*strings)[i] = current_string;
+            current_string += AsciiStrLen((*strings)[i]) + 1;
+        }
     }
 
     return EFI_SUCCESS;
@@ -74,7 +131,8 @@ void process_smbios30(
         while (structure_type != 127) {
             CHAR8** strings = NULL;
             UINTN number_of_strings = 0;
-            UINT8* string_ptr = structure_table.Raw + structure_table.Hdr->Length;
+
+            CHAR8* string_ptr = (CHAR8*)structure_table.Raw + length;
             EFI_STATUS status = extract_smbios_strings(
                 string_ptr,
                 &number_of_strings,
@@ -83,100 +141,87 @@ void process_smbios30(
 
             free_on_error(status, "Failed to extract SMBIOS strings");
 
-            if (strings != NULL) {
-                for (UINTN i = 0; i < number_of_strings; i++) {
-                    AsciiPrint("String %u: %a\n", i + 1, strings[i]);
-                }
+            for (UINTN i = 0; i < number_of_strings; i++) {
+                AsciiPrint("String %u: %a\n", i + 1, strings[i]);
+            }
 
-                AsciiPrint("Structure Type: %u\n", structure_type);
-                switch (structure_type) {
-                case 0:
-                    break;
-                case 1:
-                    break;
-                case 3:
-                    break;
-                case 4:
-                    SMBIOS_TABLE_TYPE4* table4 = structure_table.Type4;
-                    AsciiPrint("Socket Designation: %a\n", strings[table4->Socket - 1]);
-                    char* processor_type;
-                    switch (table4->ProcessorType) {
-                    case 1:
-                        processor_type = "Other";
-                        break;
-                    case 2:
-                        processor_type = "Unknown";
-                        break;
-                    case 3:
-                        processor_type = "Central";
-                        break;
-                    case 4:
-                        processor_type = "Math";
-                        break;
-                    case 5:
-                        processor_type = "DSP";
-                        break;
-                    case 6:
-                        processor_type = "Video";
-                        break;
-                    default:
-                        processor_type = "Valid";
-                    }
-                    AsciiPrint("Processor Type: %a\n", processor_type);
-                    AsciiPrint("Processor Family: 0x%X\n", table4->ProcessorFamily);
-                    AsciiPrint("Processor Manufacturer: %a", strings[table4->ProcessorManufacturer - 1]);
-                    AsciiPrint("Processor ID: 0x%X", table4->ProcessorId);
-                    AsciiPrint("Processor Version: %a", strings[table4->ProcessorVersion - 1]);
-                    break;
-                case 7:
-                    break;
-                case 9:
-                    break;
-                case 16:
-                    break;
-                case 17:
-                    break;
-                case 19:
-                    break;
-                case 32:
-                    break;
-                default:
-                    AsciiPrint(
-                        "Unsupported Structure Type: %u\n",
-                        structure_type
-                    );
-                    break;
-                }
+            AsciiPrint("Structure Type: %u\n", structure_type);
+            switch (structure_type) {
+            case 0:
+                SMBIOS_TABLE_TYPE0* table0 = structure_table.Type0;
+                AsciiPrint("BIOS Vendor: %a\n", strings[table0->Vendor - 1]);
+                AsciiPrint("BIOS Version: %a\n", strings[table0->BiosVersion - 1]);
+                AsciiPrint("BIOS Release Date: %a\n", strings[table0->BiosReleaseDate - 1]);
+                AsciiPrint("BIOS Characteristics: 0x%8X\n", convert_to_uint64(&table0->BiosCharacteristics));
+                AsciiPrint("BIOS Extended Characteristics Byte 1: 0x%2X\n", table0->BIOSCharacteristicsExtensionBytes[0]);
+                AsciiPrint("BIOS Extended Characteristics Byte 1: 0x%2X\n", table0->BIOSCharacteristicsExtensionBytes[1]);
+                break;
+            case 1:
+                break;
+            case 3:
+                break;
+            case 4:
+                SMBIOS_TABLE_TYPE4* table4 = structure_table.Type4;
+                AsciiPrint("Socket Designation: %a\n", strings[table4->Socket - 1]);
+                AsciiPrint("Processor Family: 0x%X\n", table4->ProcessorFamily);
+                AsciiPrint("Processor Manufacturer: %a\n", strings[table4->ProcessorManufacturer - 1]);
+                AsciiPrint("Processor ID: 0x%X\n", table4->ProcessorId);
+                AsciiPrint("Processor Version: %a\n", strings[table4->ProcessorVersion - 1]);
+                break;
+            case 7:
+                break;
+            case 9:
+                break;
+            case 16:
+                break;
+            case 17:
+                break;
+            case 19:
+                break;
+            case 32:
+                break;
+            default:
+                AsciiPrint(
+                    "Unsupported Structure Type: %u\n",
+                    structure_type
+                );
+                break;
+            }
 
+            if(strings != NULL) {
                 status = gBS->FreePool(strings);
                 free_on_error(status, "Failed to free strings");
-
-                wait_for_unicode(UNICODE_SPACE);
-                structure_table.Raw = (structure_table.Raw) + length;
-
-                while (*structure_table.Raw != 0 || *(structure_table.Raw + 1) != 0) {
-                    structure_table.Raw++;
-                }
-                structure_table.Raw += 2;
-                structure_type = structure_table.Hdr->Type;
-                length = structure_table.Hdr->Length;
-            } else {
-                AsciiPrint("Failed to extract SMBIOS strings.\n");
             }
+
+            EFI_INPUT_KEY key;
+            BOOLEAN validKey = FALSE;
+            BOOLEAN cont = TRUE;
+            while (validKey == FALSE) {
+                wait_for_key_and_get_it(&key);
+                if (key.UnicodeChar == UNICODE_ENTER) {
+                    validKey = TRUE;
+                    cont = FALSE;
+                } else if (key.UnicodeChar == UNICODE_SPACE) {
+                    validKey = TRUE;
+                }
+            }
+            if (cont == FALSE) {
+                break;
+            }
+
+            structure_table.Raw = structure_table.Raw + length;
+
+            while (*structure_table.Raw != 0 || *(structure_table.Raw + 1) != 0) {
+                structure_table.Raw++;
+            }
+            structure_table.Raw += 2;
+            structure_type = structure_table.Hdr->Type;
+            length = structure_table.Hdr->Length;
         }
     }
 }
 
-void process_acpi_20(
-    EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER *table,
-    OnError free_on_error
-) {
-    if(table->Signature != (UINT64)"RSD PTR ") {
-        free_on_error(EFI_ABORTED, "Invalid ACPI 2.0+ table");
-    } else {
-        AsciiPrint("Revision: %u", table->Revision);
-    }
-}
+
 
 EFI_STATUS
 print_efi_system_table() {
