@@ -17,13 +17,6 @@
 
 #define TICKS_PER_MICRO_SEC  (ArmGenericTimerGetTimerFreq ()/1000000U)
 
-// Select appropriate multiply function for platform architecture.
-#ifdef MDE_CPU_ARM
-#define MULT_U64_X_N  MultU64x32
-#else
-#define MULT_U64_X_N  MultU64x64
-#endif
-
 /**
   A local utility function that returns the PCD value, if specified.
   Otherwise it defaults to ArmGenericTimerGetTimerFreq.
@@ -62,12 +55,14 @@ MicroSecondDelay (
 {
   UINT64  TimerTicks64;
   UINT64  SystemCounterVal;
+  UINT64  PreviousSystemCounterVal;
+  UINT64  DeltaCounterVal;
 
   // Calculate counter ticks that represent requested delay:
   //  = MicroSeconds x TICKS_PER_MICRO_SEC
   //  = MicroSeconds x Frequency.10^-6
   TimerTicks64 = DivU64x32 (
-                   MULT_U64_X_N (
+                   MultU64x64 (
                      MicroSeconds,
                      GetPlatformTimerFreq ()
                      ),
@@ -75,13 +70,17 @@ MicroSecondDelay (
                    );
 
   // Read System Counter value
-  SystemCounterVal = ArmGenericTimerGetSystemCount ();
-
-  TimerTicks64 += SystemCounterVal;
+  PreviousSystemCounterVal = ArmGenericTimerGetSystemCount ();
 
   // Wait until delay count expires.
-  while (SystemCounterVal < TimerTicks64) {
+  while (TimerTicks64 > 0) {
     SystemCounterVal = ArmGenericTimerGetSystemCount ();
+    // Get how much we advanced this tick. Wrap around still has delta correct
+    DeltaCounterVal = (SystemCounterVal - PreviousSystemCounterVal)
+                      & (MAX_UINT64 >> 8); // Account for a lesser (minimum) size
+    // Never wrap back around below zero by choosing the min and thus stop at 0
+    TimerTicks64            -= MIN (TimerTicks64, DeltaCounterVal);
+    PreviousSystemCounterVal = SystemCounterVal;
   }
 
   return MicroSeconds;
@@ -199,8 +198,8 @@ GetTimeInNanoSecond (
   )
 {
   UINT64  NanoSeconds;
-  UINT32  Remainder;
-  UINT32  TimerFreq;
+  UINT64  Remainder;
+  UINT64  TimerFreq;
 
   TimerFreq = GetPlatformTimerFreq ();
   //
@@ -208,8 +207,8 @@ GetTimeInNanoSecond (
   // Time = --------- x 1,000,000,000
   //        Frequency
   //
-  NanoSeconds = MULT_U64_X_N (
-                  DivU64x32Remainder (
+  NanoSeconds = MultU64x64 (
+                  DivU64x64Remainder (
                     Ticks,
                     TimerFreq,
                     &Remainder
@@ -221,12 +220,13 @@ GetTimeInNanoSecond (
   // Frequency < 0x100000000, so Remainder < 0x100000000, then (Remainder * 1,000,000,000)
   // will not overflow 64-bit.
   //
-  NanoSeconds += DivU64x32 (
-                   MULT_U64_X_N (
-                     (UINT64)Remainder,
+  NanoSeconds += DivU64x64Remainder (
+                   MultU64x64 (
+                     Remainder,
                      1000000000U
                      ),
-                   TimerFreq
+                   TimerFreq,
+                   NULL
                    );
 
   return NanoSeconds;

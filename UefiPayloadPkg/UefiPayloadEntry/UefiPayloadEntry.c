@@ -6,6 +6,7 @@
 **/
 
 #include <Guid/MemoryTypeInformation.h>
+#include <Library/BaseArchLibSupport.h>
 #include "UefiPayloadEntry.h"
 
 STATIC UINT32  mTopOfLowerUsableDram = 0;
@@ -167,6 +168,108 @@ FindToludCallback (
 }
 
 /**
+   Callback function to find free and usable DRAM for HOB
+   The memory region returned will have at least PcdSystemMemoryUefiRegionSize bytes
+   and will be aligned to 1 MiB.
+
+   The caller must initialize HobMemBase to zero.
+
+   @param MemoryMapEntry         Memory map entry info got from bootloader.
+   @param Params                 Pointer to HobMemBase
+
+  @retval EFI_SUCCESS            Continue walking the memory map
+  @retval EFI_ALREADY_STARTED    HobMemBase is not zero
+
+**/
+EFI_STATUS
+FindFreeMemForHobCallback (
+  IN MEMORY_MAP_ENTRY  *MemoryMapEntry,
+  IN VOID              *Params
+  )
+{
+  EFI_STATUS        Status;
+  MEMORY_MAP_ENTRY  MemoryMapEntrySplit;
+  UINTN             *HobMemBase = (UINTN *)Params;
+
+  //
+  // Found new base, nothing to do
+  //
+  if (*HobMemBase != 0) {
+    return EFI_ALREADY_STARTED;
+  }
+
+  //
+  // Skip memory types not RAM
+  //
+  if (MemoryMapEntry->Type != E820_RAM) {
+    return EFI_SUCCESS;
+  }
+
+  //
+  // Align on 1 MiB
+  //
+  if (ALIGN_VALUE (MemoryMapEntry->Base, SIZE_1MB) > MemoryMapEntry->Base) {
+    //
+    // Skip too small
+    //
+    if (ALIGN_VALUE (MemoryMapEntry->Base, SIZE_1MB) >= (MemoryMapEntry->Base + MemoryMapEntry->Size)) {
+      return EFI_SUCCESS;
+    }
+
+    MemoryMapEntry->Size -= ALIGN_VALUE (MemoryMapEntry->Base, SIZE_1MB) - MemoryMapEntry->Base;
+    MemoryMapEntry->Base  = ALIGN_VALUE (MemoryMapEntry->Base, SIZE_1MB);
+  }
+
+  //
+  // Skip resources above 4GiB on x86_32
+  //
+  if ((sizeof (UINTN) == 4) && (MemoryMapEntry->Base >= 0x100000000ULL)) {
+    return EFI_SUCCESS;
+  }
+
+  if ((sizeof (UINTN) == 4) && ((MemoryMapEntry->Base + MemoryMapEntry->Size) > 0x100000000ULL)) {
+    MemoryMapEntry->Size = 0x100000000ULL - MemoryMapEntry->Base;
+  }
+
+  //
+  // Skip too small
+  //
+  if (MemoryMapEntry->Size < FixedPcdGet32 (PcdSystemMemoryUefiRegionSize)) {
+    return EFI_SUCCESS;
+  }
+
+  //
+  // Overlaps UefiPayload, split into smaller chunks
+  //
+  if ((MemoryMapEntry->Base <= PcdGet32 (PcdPayloadFdMemBase)) &&
+      ((MemoryMapEntry->Base + MemoryMapEntry->Size) >= PcdGet32 (PcdPayloadFdMemBase)))
+  {
+    MemoryMapEntrySplit.Type = E820_RAM;
+    MemoryMapEntrySplit.Base = MemoryMapEntry->Base;
+    MemoryMapEntrySplit.Size = PcdGet32 (PcdPayloadFdMemBase) - MemoryMapEntrySplit.Base;
+    Status                   = FindFreeMemForHobCallback (&MemoryMapEntrySplit, Params);
+    if (EFI_ERROR (Status)) {
+      return Status;
+    }
+
+    if ((MemoryMapEntry->Base + MemoryMapEntry->Size) > (PcdGet32 (PcdPayloadFdMemBase) + PcdGet32 (PcdPayloadFdMemSize))) {
+      MemoryMapEntrySplit.Base = PcdGet32 (PcdPayloadFdMemBase) + PcdGet32 (PcdPayloadFdMemSize);
+      MemoryMapEntrySplit.Size = (MemoryMapEntry->Base + MemoryMapEntry->Size) - MemoryMapEntrySplit.Base;
+      Status                   = FindFreeMemForHobCallback (&MemoryMapEntrySplit, Params);
+      if (EFI_ERROR (Status)) {
+        return Status;
+      }
+    }
+
+    return EFI_SUCCESS;
+  }
+
+  *HobMemBase = MemoryMapEntry->Base;
+
+  return EFI_ALREADY_STARTED;
+}
+
+/**
    Callback function to build resource descriptor HOB
 
    This function build a HOB based on the memory map entry info.
@@ -235,6 +338,8 @@ BuildHobFromBl (
 {
   EFI_STATUS                        Status;
   ACPI_BOARD_INFO                   *AcpiBoardInfo;
+  SMMSTORE_INFO                     SmmStoreInfo;
+  SMMSTORE_INFO                     *NewSmmStoreInfo;
   EFI_PEI_GRAPHICS_INFO_HOB         GfxInfo;
   EFI_PEI_GRAPHICS_INFO_HOB         *NewGfxInfo;
   EFI_PEI_GRAPHICS_DEVICE_INFO_HOB  GfxDeviceInfo;
@@ -279,6 +384,17 @@ BuildHobFromBl (
     ASSERT (NewGfxDeviceInfo != NULL);
     CopyMem (NewGfxDeviceInfo, &GfxDeviceInfo, sizeof (GfxDeviceInfo));
     DEBUG ((DEBUG_INFO, "Created graphics device info hob\n"));
+  }
+
+  //
+  // Create guid hob for SmmStore
+  //
+  Status = ParseSmmStoreInfo (&SmmStoreInfo);
+  if (!EFI_ERROR (Status)) {
+    NewSmmStoreInfo = BuildGuidHob (&gEfiSmmStoreInfoHobGuid, sizeof (SmmStoreInfo));
+    ASSERT (NewSmmStoreInfo != NULL);
+    CopyMem (NewSmmStoreInfo, &SmmStoreInfo, sizeof (SmmStoreInfo));
+    DEBUG ((DEBUG_INFO, "Created SmmStore info hob\n"));
   }
 
   //
@@ -351,24 +467,13 @@ BuildGenericHob (
   VOID
   )
 {
-  UINT32                       RegEax;
   UINT8                        PhysicalAddressBits;
   EFI_RESOURCE_ATTRIBUTE_TYPE  ResourceAttribute;
 
   // The UEFI payload FV
   BuildMemoryAllocationHob (PcdGet32 (PcdPayloadFdMemBase), PcdGet32 (PcdPayloadFdMemSize), EfiBootServicesData);
 
-  //
-  // Build CPU memory space and IO space hob
-  //
-  AsmCpuid (0x80000000, &RegEax, NULL, NULL, NULL);
-  if (RegEax >= 0x80000008) {
-    AsmCpuid (0x80000008, &RegEax, NULL, NULL, NULL);
-    PhysicalAddressBits = (UINT8)RegEax;
-  } else {
-    PhysicalAddressBits = 36;
-  }
-
+  PhysicalAddressBits = ArchGetPhysicalAddressBits ();
   BuildCpuHob (PhysicalAddressBits, 16);
 
   //
@@ -414,8 +519,19 @@ _ModuleEntryPoint (
 
   // HOB region is used for HOB and memory allocation for this module
   MemBase    = PcdGet32 (PcdPayloadFdMemBase);
-  HobMemBase = ALIGN_VALUE (MemBase + PcdGet32 (PcdPayloadFdMemSize), SIZE_1MB);
-  HobMemTop  = HobMemBase + FixedPcdGet32 (PcdSystemMemoryUefiRegionSize);
+  HobMemBase = 0;
+
+  //
+  // Find a good place for HOB and memory allocation
+  //
+  ParseMemoryInfo (FindFreeMemForHobCallback, &HobMemBase);
+
+  ASSERT (HobMemBase != 0);
+  if (HobMemBase == 0) {
+    HobMemBase = ALIGN_VALUE (MemBase + PcdGet32 (PcdPayloadFdMemSize), SIZE_1MB);
+  }
+
+  HobMemTop = HobMemBase + FixedPcdGet32 (PcdSystemMemoryUefiRegionSize);
 
   HobConstructor ((VOID *)MemBase, (VOID *)HobMemTop, (VOID *)HobMemBase, (VOID *)HobMemTop);
 
@@ -432,11 +548,21 @@ _ModuleEntryPoint (
     UniversalSerialPort->RegisterBase    = SerialPortInfo.BaseAddr;
     UniversalSerialPort->BaudRate        = SerialPortInfo.Baud;
     UniversalSerialPort->RegisterStride  = (UINT8)SerialPortInfo.RegWidth;
+    // Set PCD here (vs in PlatformHookLib.c) to avoid adding a new field to UniversalSerialPort struct
+    if (SerialPortInfo.InputHertz > 0) {
+      Status = PcdSet32S (PcdSerialClockRate, SerialPortInfo.InputHertz);
+      if (RETURN_ERROR (Status)) {
+        DEBUG ((DEBUG_ERROR, "Failed to set PcdSerialClockRate; Status = %r\n", Status));
+        return Status;
+      }
+    }
   }
 
   // The library constructors might depend on serial port, so call it after serial port hob
   ProcessLibraryConstructorList ();
   DEBUG ((DEBUG_INFO, "sizeof(UINTN) = 0x%x\n", sizeof (UINTN)));
+  DEBUG ((DEBUG_INFO, "MemBase       = 0x%llx\n", (UINT64)MemBase));
+  DEBUG ((DEBUG_INFO, "HobMemBase    = 0x%llx\n", (UINT64)HobMemBase));
 
   // Build HOB based on information from Bootloader
   Status = BuildHobFromBl ();

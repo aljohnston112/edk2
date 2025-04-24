@@ -2,6 +2,7 @@
   SSDT Cpu Topology Table Generator.
 
   Copyright (c) 2021 - 2023, Arm Limited. All rights reserved.<BR>
+  Copyright (C) 2025, Advanced Micro Devices, Inc. All rights reserved.
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
   @par Reference(s):
@@ -280,7 +281,6 @@ WriteAslName (
   @retval EFI_INVALID_PARAMETER   Invalid parameter.
   @retval EFI_OUT_OF_RESOURCES    Failed to allocate memory.
 **/
-STATIC
 EFI_STATUS
 EFIAPI
 CreateAmlPsdNode (
@@ -1359,7 +1359,7 @@ ACPI_CPU_TOPOLOGY_GENERATOR  SsdtCpuTopologyGenerator = {
     // Minimum ACPI Table Revision - Unused
     0,
     // Creator ID
-    TABLE_GENERATOR_CREATOR_ID_ARM,
+    TABLE_GENERATOR_CREATOR_ID,
     // Creator Revision
     SSDT_CPU_TOPOLOGY_GENERATOR_REVISION,
     // Build Table function

@@ -520,8 +520,12 @@ SmbiosPrintStructure (
         ShellPrintEx (-1, -1, L"Thread Count 2: %u\n", Struct->Type4->ThreadCount2);
       }
 
-      if (AE_SMBIOS_VERSION (0x3, 0x6) && (Struct->Hdr->Length > 0x2E)) {
+      if (AE_SMBIOS_VERSION (0x3, 0x6) && (Struct->Hdr->Length > 0x30)) {
         ShellPrintEx (-1, -1, L"Thread Enabled: %u\n", Struct->Type4->ThreadEnabled);
+      }
+
+      if (AE_SMBIOS_VERSION (0x3, 0x8) && (Struct->Hdr->Length > 0x32)) {
+        ShellPrintEx (-1, -1, L"Socket Type: %a\n", LibGetSmbiosString (Struct, Struct->Type4->SocketType));
       }
 
       break;
@@ -672,7 +676,7 @@ SmbiosPrintStructure (
     {
       UINTN  NumOfDevice;
       NumOfDevice = (Struct->Type10->Hdr.Length - sizeof (SMBIOS_STRUCTURE)) / (2 * sizeof (UINT8));
-      for (Index = 0; Index < NumOfDevice; Index++) {
+      for (Index = 0; (UINTN)Index < NumOfDevice; Index++) {
         ShellPrintEx (-1, -1, (((Struct->Type10->Device[Index].DeviceType) & 0x80) != 0) ? L"Device Enabled\n" : L"Device Disabled\n");
         DisplayOnboardDeviceTypes ((Struct->Type10->Device[Index].DeviceType) & 0x7F, Option);
         ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_SMBIOSVIEW_PRINTINFO_DESC_STRING), gShellDebug1HiiHandle);
@@ -1290,8 +1294,43 @@ SmbiosPrintStructure (
     case 42:
       DisplayMCHostInterfaceType (Struct->Type42->InterfaceType, Option);
       if (AE_SMBIOS_VERSION (0x3, 0x2)) {
+        UINT32  DataValue = 0;
         PRINT_STRUCT_VALUE_H (Struct, Type42, InterfaceTypeSpecificDataLength);
-        PRINT_BIT_FIELD (Struct, Type42, InterfaceTypeSpecificData, Struct->Type42->InterfaceTypeSpecificDataLength);
+        if (Struct->Type42->InterfaceTypeSpecificDataLength < 4) {
+          ShellPrintEx (-1, -1, L"WARNING: InterfaceTypeSpecificDataLength should be >= 4.\n");
+        }
+
+        ShellPrintEx (-1, -1, L"InterfaceTypeSpecificData\n");
+        // Decode and interpret InterfaceTypeSpecificData based on the InterfaceType
+        switch (Struct->Type42->InterfaceType) {
+          case MCHostInterfaceTypeOemDefined:
+            // The first four bytes are the vendor ID (MSB first), as assigned by the Internet Assigned Numbers Authority (IANA) as "Enterprise Number".
+            // See https://www.iana.org/assignments/enterprise-numbers.txt
+            ShellPrintEx (-1, -1, L"Vendor ID (IANA Enterprise Number): %d", (UINT32)*(Struct->Type42->InterfaceTypeSpecificData));
+            break;
+
+          // As defined in MCTP Host Interface Specification, DSP0256
+          case MCHostInterfaceTypeMMBI:
+            // For MCTP interface type of MMBI; this defines the pointer to the MMBI capability descriptor, as defined in DSP0282, Section 7.1
+            DataValue = *(UINT32 *)Struct->Type42->InterfaceTypeSpecificData;
+            ShellPrintEx (-1, -1, L"Pointer to MMBI capability descriptor: 0x%x\n", DataValue);
+            break;
+
+          case MCHostInterfaceTypeI2C_SMBUS:
+          case MCHostInterfaceTypeI3C:
+          case MCHostInterfaceTypeKCS:
+            // switch case fall through
+            // For MCTP interface type of I2C, I3C, KCS; this value is reserved and must be 0
+            DataValue = *(UINT32 *)Struct->Type42->InterfaceTypeSpecificData;
+            ShellPrintEx (-1, -1, L"For Interface type I2C, I3C or KCS, InterfaceTypeSpecificData is reserved and must be 0.\n");
+            ShellPrintEx (-1, -1, L"Actual value is : 0x%x\n", DataValue);
+            break;
+
+          default:
+            // The decoding is not defined for these values in SMBIOS 3.8.0. The value is dumped
+            PRINT_BIT_FIELD (Struct, Type42, InterfaceTypeSpecificData, Struct->Type42->InterfaceTypeSpecificDataLength);
+            break;
+        }
       }
 
       break;
@@ -2419,6 +2458,10 @@ DisplayProcessorFamily (
       Print (L"Intel Core i9 processor\n");
       break;
 
+    case 0xD0:
+      Print (L"Intel Xeon D Processor\n");
+      break;
+
     case 0xD2:
       Print (L"ViaC7M\n");
       break;
@@ -2567,6 +2610,10 @@ DisplayProcessorFamily2 (
 
     case 0x101:
       Print (L"ARMv8\n");
+      break;
+
+    case 0x102:
+      Print (L"ARMv9\n");
       break;
 
     case 0x104:
@@ -3173,7 +3220,7 @@ DisplaySystemSlotId (
     //
     case 0x04:
       ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_SMBIOSVIEW_PRINTINFO_LOGICAL_MICRO_CHAN), gShellDebug1HiiHandle);
-      if ((SlotId > 0) && (SlotId < 15)) {
+      if ((SlotId > 0) && (SlotId <= 15)) {
         ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_SMBIOSVIEW_PRINTINFO_ONE_VAR_D), gShellDebug1HiiHandle, SlotId);
       } else {
         ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_SMBIOSVIEW_PRINTINFO_ERROR_NOT_1_15), gShellDebug1HiiHandle);
@@ -3182,11 +3229,11 @@ DisplaySystemSlotId (
       break;
 
     //
-    // EISA
+    // Slot Type: EISA
     //
     case 0x05:
       ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_SMBIOSVIEW_PRINTINFO_LOGICAL_EISA_NUM), gShellDebug1HiiHandle);
-      if ((SlotId > 0) && (SlotId < 15)) {
+      if ((SlotId > 0) && (SlotId <= 15)) {
         ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_SMBIOSVIEW_PRINTINFO_ONE_VAR_D), gShellDebug1HiiHandle, SlotId);
       } else {
         ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_SMBIOSVIEW_PRINTINFO_ERROR_NOT_1_15), gShellDebug1HiiHandle);
@@ -3202,21 +3249,20 @@ DisplaySystemSlotId (
       break;
 
     //
-    // PCMCIA
+    // Slot Type: PCMCIA
     //
     case 0x07:
       ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_SMBIOSVIEW_PRINTINFO_IDENTIFIES_ADAPTER_NUM), gShellDebug1HiiHandle, SlotId);
       break;
 
     //
-    // Slot Type: PCI-E
+    // Slot Type: PCI 66MHz Capable, AGP, PCI-E, etc
     //
-    case 0xA5:
-      ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_SMBIOSVIEW_PRINTINFO_VALUE_PRESENT), gShellDebug1HiiHandle, SlotId);
-      break;
-
     default:
-      if (((SlotType >= 0x0E) && (SlotType <= 0x12)) || ((SlotType >= 0xA6) && (SlotType <= 0xC4))) {
+      if (((SlotType >= 0x0E) && (SlotType <= 0x13)) ||
+          ((SlotType >= 0x1F) && (SlotType <= 0x25)) ||
+          ((SlotType >= 0xA5) && (SlotType <= 0xC6)))
+      {
         ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_SMBIOSVIEW_PRINTINFO_VALUE_PRESENT), gShellDebug1HiiHandle, SlotId);
       } else {
         ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_SMBIOSVIEW_PRINTINFO_UNDEFINED_SLOT_ID), gShellDebug1HiiHandle);

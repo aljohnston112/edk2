@@ -4,7 +4,7 @@
 
   Copyright (c) 2005 - 2024, Intel Corporation. All rights reserved.<BR>
   (C) Copyright 2016-2019 Hewlett Packard Enterprise Development LP<BR>
-  Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+  Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
@@ -1924,7 +1924,7 @@ TABLE_ITEM  SystemSlotHeightTable[] = {
   },
   {
     0x02,
-    L" Unkown"
+    L" Unknown"
   },
   {
     0x03,
@@ -2748,6 +2748,10 @@ TABLE_ITEM  MemoryDeviceFormFactorTable[] = {
   {
     MemoryFormFactorDie,
     L"  Die"
+  },
+  {
+    MemoryFormFactorCamm,
+    L"  CAMM"
   }
 };
 

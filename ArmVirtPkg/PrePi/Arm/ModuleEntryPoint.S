@@ -6,11 +6,17 @@
 //
 //
 
-#include <AsmMacroIoLib.h>
+#include <AsmMacroLib.h>
 
 ASM_FUNC(_ModuleEntryPoint)
   // Do early platform specific actions
   bl    ASM_PFX(ArmPlatformPeiBootAction)
+
+#if (FixedPcdGet32 (PcdVFPEnabled))
+  // Enable Floating Point. AArch64 uses hardfloat ABI so needs this done before
+  // calling any C code. Arm does not, but let's keep the ports aligned.
+  bl    ArmEnableVFP
+#endif
 
   // Get ID of this CPU in Multicore system
   bl    ASM_PFX(ArmReadMpidr)

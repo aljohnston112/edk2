@@ -26,7 +26,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
                                        EFI_RESOURCE_ATTRIBUTE_16_BIT_IO           | \
                                        EFI_RESOURCE_ATTRIBUTE_32_BIT_IO           | \
                                        EFI_RESOURCE_ATTRIBUTE_64_BIT_IO           | \
-                                       EFI_RESOURCE_ATTRIBUTE_PERSISTENT          )
+                                       EFI_RESOURCE_ATTRIBUTE_PERSISTENT          | \
+                                       EFI_RESOURCE_ATTRIBUTE_SPECIAL_PURPOSE     )
 
 #define TESTED_MEMORY_ATTRIBUTES  (EFI_RESOURCE_ATTRIBUTE_PRESENT     |     \
                                        EFI_RESOURCE_ATTRIBUTE_INITIALIZED | \
@@ -93,6 +94,7 @@ GCD_ATTRIBUTE_CONVERSION_ENTRY  mAttributeConversionTable[] = {
   { EFI_RESOURCE_ATTRIBUTE_PERSISTABLE,             EFI_MEMORY_NV,            TRUE  },
   { EFI_RESOURCE_ATTRIBUTE_MORE_RELIABLE,           EFI_MEMORY_MORE_RELIABLE, TRUE  },
   { EFI_RESOURCE_ATTRIBUTE_SPECIAL_PURPOSE,         EFI_MEMORY_SP,            TRUE  },
+  { EFI_RESOURCE_ATTRIBUTE_HOT_PLUGGABLE,           EFI_MEMORY_HOT_PLUGGABLE, TRUE  },
   { 0,                                              0,                        FALSE }
 };
 
@@ -989,6 +991,20 @@ CoreConvertSpace (
       //
       case GCD_SET_CAPABILITIES_MEMORY_OPERATION:
         Entry->Capabilities = Capabilities;
+
+        // Only SystemMemory and MoreReliable memory is in gMemoryMap
+        // so only attempt to update the attributes there if this is
+        // a relevant GCD type
+        if ((Entry->GcdMemoryType == EfiGcdMemoryTypeSystemMemory) ||
+            (Entry->GcdMemoryType == EfiGcdMemoryTypeMoreReliable))
+        {
+          CoreUpdateMemoryAttributes (
+            BaseAddress,
+            RShiftU64 (Length, EFI_PAGE_SHIFT),
+            Capabilities & (~EFI_MEMORY_RUNTIME)
+            );
+        }
+
         break;
     }
 
@@ -1700,17 +1716,10 @@ CoreSetMemorySpaceCapabilities (
   IN UINT64                Capabilities
   )
 {
-  EFI_STATUS  Status;
-
   DEBUG ((DEBUG_GCD, "GCD:CoreSetMemorySpaceCapabilities(Base=%016lx,Length=%016lx)\n", BaseAddress, Length));
   DEBUG ((DEBUG_GCD, "  Capabilities  = %016lx\n", Capabilities));
 
-  Status = CoreConvertSpace (GCD_SET_CAPABILITIES_MEMORY_OPERATION, (EFI_GCD_MEMORY_TYPE)0, (EFI_GCD_IO_TYPE)0, BaseAddress, Length, Capabilities, 0);
-  if (!EFI_ERROR (Status)) {
-    CoreUpdateMemoryAttributes (BaseAddress, RShiftU64 (Length, EFI_PAGE_SHIFT), Capabilities & (~EFI_MEMORY_RUNTIME));
-  }
-
-  return Status;
+  return CoreConvertSpace (GCD_SET_CAPABILITIES_MEMORY_OPERATION, (EFI_GCD_MEMORY_TYPE)0, (EFI_GCD_IO_TYPE)0, BaseAddress, Length, Capabilities, 0);
 }
 
 /**
@@ -2659,6 +2668,12 @@ CoreInitializeGcdServices (
 
           if ((ResourceHob->ResourceAttribute & EFI_RESOURCE_ATTRIBUTE_PERSISTENT) == EFI_RESOURCE_ATTRIBUTE_PERSISTENT) {
             GcdMemoryType = EfiGcdMemoryTypePersistent;
+          }
+
+          // Mark special purpose memory as system memory, if it was system memory in the HOB
+          // However, if this is also marked as persistent, let persistent take precedence
+          if ((ResourceHob->ResourceAttribute & EFI_RESOURCE_ATTRIBUTE_SPECIAL_PURPOSE) == EFI_RESOURCE_ATTRIBUTE_SPECIAL_PURPOSE) {
+            GcdMemoryType = EfiGcdMemoryTypeSystemMemory;
           }
 
           break;

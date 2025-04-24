@@ -156,7 +156,7 @@ ArmInstructionCacheLineLength (
   VOID
   );
 
-UINTN
+UINT32
 EFIAPI
 ArmCacheWritebackGranule (
   VOID
@@ -177,24 +177,6 @@ ArmCacheInfo (
 BOOLEAN
 EFIAPI
 ArmIsMpCore (
-  VOID
-  );
-
-VOID
-EFIAPI
-ArmInvalidateDataCache (
-  VOID
-  );
-
-VOID
-EFIAPI
-ArmCleanInvalidateDataCache (
-  VOID
-  );
-
-VOID
-EFIAPI
-ArmCleanDataCache (
   VOID
   );
 

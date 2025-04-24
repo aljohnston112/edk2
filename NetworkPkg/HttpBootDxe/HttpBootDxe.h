@@ -214,6 +214,8 @@ struct _HTTP_BOOT_PRIVATE_DATA {
   CHAR8                                        *BootFileUri;
   VOID                                         *BootFileUriParser;
   UINTN                                        BootFileSize;
+  UINTN                                        PartialTransferredSize;
+  CHAR8                                        *LastModifiedOrEtag;
   BOOLEAN                                      NoGateway;
   HTTP_BOOT_IMAGE_TYPE                         ImageType;
 
@@ -222,6 +224,12 @@ struct _HTTP_BOOT_PRIVATE_DATA {
   //
   CHAR8                                        *FilePathUri;
   VOID                                         *FilePathUriParser;
+
+  //
+  // URI string for the Proxy host if BootFileUri contains a Proxy
+  // URI in the path
+  //
+  CHAR8                                        *ProxyUri;
 
   //
   // Cached HTTP data

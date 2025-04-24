@@ -77,11 +77,19 @@ HttpBootUninstallCallback (
   IN HTTP_BOOT_PRIVATE_DATA  *Private
   )
 {
+  EFI_HANDLE  ControllerHandle;
+
   if (Private->HttpBootCallback == &Private->LoadFileCallback) {
+    if (!Private->UsingIpv6) {
+      ControllerHandle = Private->Ip4Nic->Controller;
+    } else {
+      ControllerHandle = Private->Ip6Nic->Controller;
+    }
+
     gBS->UninstallProtocolInterface (
-           Private->Controller,
+           ControllerHandle,
            &gEfiHttpBootCallbackProtocolGuid,
-           &Private->HttpBootCallback
+           Private->HttpBootCallback
            );
     Private->HttpBootCallback = NULL;
   }
@@ -115,19 +123,21 @@ HttpBootStart (
 {
   UINTN       Index;
   EFI_STATUS  Status;
-  CHAR8       *Uri;
+  CHAR8       *ProxyUri;
+  CHAR8       *EndPointUri;
 
-  Uri = NULL;
+  ProxyUri    = NULL;
+  EndPointUri = NULL;
 
   if ((Private == NULL) || (FilePath == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
   //
-  // Check the URI in the input FilePath, in order to see whether it is
+  // Check the URIs in the input FilePath, in order to see whether it is
   // required to boot from a new specified boot file.
   //
-  Status = HttpBootParseFilePath (FilePath, &Uri);
+  Status = HttpBootParseFilePath (FilePath, &ProxyUri, &EndPointUri);
   if (EFI_ERROR (Status)) {
     return EFI_INVALID_PARAMETER;
   }
@@ -143,28 +153,21 @@ HttpBootStart (
     // recorded before.
     //
     if ((UsingIpv6 != Private->UsingIpv6) ||
-        ((Uri != NULL) && (AsciiStrCmp (Private->BootFileUri, Uri) != 0)))
+        ((EndPointUri != NULL) && (AsciiStrCmp (Private->BootFileUri, EndPointUri) != 0)))
     {
       //
       // Restart is required, first stop then continue this start function.
       //
       Status = HttpBootStop (Private);
       if (EFI_ERROR (Status)) {
-        if (Uri != NULL) {
-          FreePool (Uri);
-        }
-
-        return Status;
+        goto ERROR;
       }
     } else {
       //
       // Restart is not required.
       //
-      if (Uri != NULL) {
-        FreePool (Uri);
-      }
-
-      return EFI_ALREADY_STARTED;
+      Status = EFI_ALREADY_STARTED;
+      goto ERROR;
     }
   }
 
@@ -176,17 +179,16 @@ HttpBootStart (
   } else if (!UsingIpv6 && (Private->Ip4Nic != NULL)) {
     Private->UsingIpv6 = FALSE;
   } else {
-    if (Uri != NULL) {
-      FreePool (Uri);
-    }
-
-    return EFI_UNSUPPORTED;
+    Status = EFI_UNSUPPORTED;
+    goto ERROR;
   }
 
   //
-  // Record the specified URI and prepare the URI parser if needed.
+  // Record the specified URIs and prepare the URI parser if needed.
   //
-  Private->FilePathUri = Uri;
+  Private->ProxyUri    = ProxyUri;
+  Private->FilePathUri = EndPointUri;
+
   if (Private->FilePathUri != NULL) {
     Status = HttpParseUrl (
                Private->FilePathUri,
@@ -195,8 +197,7 @@ HttpBootStart (
                &Private->FilePathUriParser
                );
     if (EFI_ERROR (Status)) {
-      FreePool (Private->FilePathUri);
-      return Status;
+      goto ERROR;
     }
   }
 
@@ -228,6 +229,17 @@ HttpBootStart (
   Print (L"\n>>Start HTTP Boot over IPv%d", Private->UsingIpv6 ? 6 : 4);
 
   return EFI_SUCCESS;
+
+ERROR:
+  if (ProxyUri != NULL) {
+    FreePool (ProxyUri);
+  }
+
+  if (EndPointUri != NULL) {
+    FreePool (EndPointUri);
+  }
+
+  return Status;
 }
 
 /**
@@ -272,6 +284,162 @@ HttpBootDhcp (
   }
 
   return Status;
+}
+
+/**
+  Issue calls to HttpBootGetBootFile() based on current Boot File State
+  @param[in]          Private         The pointer to the driver's private data.
+  @param[in, out]     BufferSize      On input the size of Buffer in bytes. On output with a return
+                                      code of EFI_SUCCESS, the amount of data transferred to
+                                      Buffer. On output with a return code of EFI_BUFFER_TOO_SMALL,
+                                      the size of Buffer required to retrieve the requested file.
+  @param[in]          Buffer          The memory buffer to transfer the file to. If Buffer is NULL,
+                                      then the size of the requested file is returned in
+                                      BufferSize.
+  @param[out]         ImageType       The image type of the downloaded file.
+  @retval EFI_SUCCESS              The file was loaded.
+  @retval EFI_INVALID_PARAMETER    BufferSize is NULL or Buffer Size is not NULL but Buffer is NULL.
+  @retval EFI_OUT_OF_RESOURCES     Could not allocate needed resources
+  @retval EFI_BUFFER_TOO_SMALL     The BufferSize is too small to read the current directory entry.
+                                   BufferSize has been updated with the size needed to complete
+                                   the request.
+  @retval EFI_ACCESS_DENIED        Server authentication failed.
+  @retval Others                   Unexpected error happened.
+**/
+EFI_STATUS
+HttpBootGetBootFileCaller (
+  IN     HTTP_BOOT_PRIVATE_DATA  *Private,
+  IN OUT UINTN                   *BufferSize,
+  IN     VOID                    *Buffer        OPTIONAL,
+  OUT    HTTP_BOOT_IMAGE_TYPE    *ImageType
+  )
+{
+  HTTP_GET_BOOT_FILE_STATE  State;
+  EFI_STATUS                Status;
+  UINT32                    Retries;
+
+  if (Private->BootFileSize == 0) {
+    if (Private->ProxyUri != NULL) {
+      State = ConnectToProxy;
+    } else {
+      State = GetBootFileHead;
+    }
+  } else {
+    State = LoadBootFile;
+  }
+
+  for ( ; ;) {
+    switch (State) {
+      case GetBootFileHead:
+        //
+        // Try to use HTTP HEAD method.
+        //
+        Status = HttpBootGetBootFile (
+                   Private,
+                   TRUE,
+                   &Private->BootFileSize,
+                   NULL,
+                   &Private->ImageType
+                   );
+        if ((EFI_ERROR (Status)) && (Status != EFI_BUFFER_TOO_SMALL)) {
+          if ((Private->AuthData != NULL) && (Status == EFI_ACCESS_DENIED)) {
+            //
+            // Try to use HTTP HEAD method again since the Authentication information is provided.
+            //
+            State = GetBootFileHead;
+          } else {
+            State = GetBootFileGet;
+          }
+        } else {
+          State = LoadBootFile;
+        }
+
+        break;
+
+      case GetBootFileGet:
+        //
+        // Failed to get file size by HEAD method, may be trunked encoding, try HTTP GET method.
+        //
+        ASSERT (Private->BootFileSize == 0);
+        Status = HttpBootGetBootFile (
+                   Private,
+                   FALSE,
+                   &Private->BootFileSize,
+                   NULL,
+                   &Private->ImageType
+                   );
+        if (EFI_ERROR (Status) && (Status != EFI_BUFFER_TOO_SMALL)) {
+          State = GetBootFileError;
+        } else {
+          State = LoadBootFile;
+        }
+
+        break;
+
+      case ConnectToProxy:
+        Status = HttpBootConnectProxy (Private);
+        if (Status == EFI_SUCCESS) {
+          State = GetBootFileHead;
+        } else {
+          State = GetBootFileError;
+        }
+
+        break;
+
+      case LoadBootFile:
+        if (*BufferSize < Private->BootFileSize) {
+          *BufferSize = Private->BootFileSize;
+          *ImageType  = Private->ImageType;
+          Status      = EFI_BUFFER_TOO_SMALL;
+          return Status;
+        }
+
+        //
+        // Load the boot file into Buffer
+        //
+        for (Retries = 1; Retries <= PcdGet32 (PcdMaxHttpResumeRetries); Retries++) {
+          Status = HttpBootGetBootFile (
+                     Private,
+                     FALSE,
+                     BufferSize,
+                     Buffer,
+                     ImageType
+                     );
+          if (!EFI_ERROR (Status) ||
+              ((Status != EFI_TIMEOUT) && (Status != EFI_DEVICE_ERROR)) ||
+              (Retries >= PcdGet32 (PcdMaxHttpResumeRetries)))
+          {
+            break;
+          }
+
+          //
+          // HttpBootGetBootFile returned EFI_TIMEOUT or EFI_DEVICE_ERROR.
+          // We may attempt to resume the interrupted download.
+          //
+
+          Private->HttpCreated = FALSE;
+          HttpIoDestroyIo (&Private->HttpIo);
+          Status = HttpBootCreateHttpIo (Private);
+          if (EFI_ERROR (Status)) {
+            break;
+          }
+
+          DEBUG ((DEBUG_WARN | DEBUG_INFO, "HttpBootGetBootFileCaller: NBP file download interrupted, will try to resume the operation.\n"));
+          gBS->Stall (1000 * 1000 * PcdGet32 (PcdHttpDelayBetweenResumeRetries));
+        }
+
+        if (EFI_ERROR (Status) && (Retries >= PcdGet32 (PcdMaxHttpResumeRetries))) {
+          DEBUG ((DEBUG_ERROR, "HttpBootGetBootFileCaller: Error downloading NBP file, even after trying to resume %d times.\n", Retries));
+        }
+
+        return Status;
+
+      case GetBootFileError:
+      default:
+        AsciiPrint ("\n  Error: Could not retrieve NBP file size from HTTP server.\n");
+        return Status;
+    }
+  }
 }
 
 /**
@@ -345,68 +513,10 @@ HttpBootLoadFile (
     }
   }
 
-  if (Private->BootFileSize == 0) {
-    //
-    // Discover the information about the bootfile if we haven't.
-    //
-
-    //
-    // Try to use HTTP HEAD method.
-    //
-    Status = HttpBootGetBootFile (
-               Private,
-               TRUE,
-               &Private->BootFileSize,
-               NULL,
-               &Private->ImageType
-               );
-    if ((Private->AuthData != NULL) && (Status == EFI_ACCESS_DENIED)) {
-      //
-      // Try to use HTTP HEAD method again since the Authentication information is provided.
-      //
-      Status = HttpBootGetBootFile (
-                 Private,
-                 TRUE,
-                 &Private->BootFileSize,
-                 NULL,
-                 &Private->ImageType
-                 );
-    } else if ((EFI_ERROR (Status)) && (Status != EFI_BUFFER_TOO_SMALL)) {
-      //
-      // Failed to get file size by HEAD method, may be trunked encoding, try HTTP GET method.
-      //
-      ASSERT (Private->BootFileSize == 0);
-      Status = HttpBootGetBootFile (
-                 Private,
-                 FALSE,
-                 &Private->BootFileSize,
-                 NULL,
-                 &Private->ImageType
-                 );
-      if (EFI_ERROR (Status) && (Status != EFI_BUFFER_TOO_SMALL)) {
-        AsciiPrint ("\n  Error: Could not retrieve NBP file size from HTTP server.\n");
-        goto ON_EXIT;
-      }
-    }
-  }
-
-  if (*BufferSize < Private->BootFileSize) {
-    *BufferSize = Private->BootFileSize;
-    *ImageType  = Private->ImageType;
-    Status      = EFI_BUFFER_TOO_SMALL;
-    goto ON_EXIT;
-  }
-
   //
-  // Load the boot file into Buffer
+  // Load the boot file
   //
-  Status = HttpBootGetBootFile (
-             Private,
-             FALSE,
-             BufferSize,
-             Buffer,
-             ImageType
-             );
+  Status = HttpBootGetBootFileCaller (Private, BufferSize, Buffer, ImageType);
 
 ON_EXIT:
   HttpBootUninstallCallback (Private);
@@ -467,12 +577,13 @@ HttpBootStop (
   ZeroMem (&Private->StationIp, sizeof (EFI_IP_ADDRESS));
   ZeroMem (&Private->SubnetMask, sizeof (EFI_IP_ADDRESS));
   ZeroMem (&Private->GatewayIp, sizeof (EFI_IP_ADDRESS));
-  Private->Port              = 0;
-  Private->BootFileUri       = NULL;
-  Private->BootFileUriParser = NULL;
-  Private->BootFileSize      = 0;
-  Private->SelectIndex       = 0;
-  Private->SelectProxyType   = HttpOfferTypeMax;
+  Private->Port                   = 0;
+  Private->BootFileUri            = NULL;
+  Private->BootFileUriParser      = NULL;
+  Private->BootFileSize           = 0;
+  Private->SelectIndex            = 0;
+  Private->SelectProxyType        = HttpOfferTypeMax;
+  Private->PartialTransferredSize = 0;
 
   if (!Private->UsingIpv6) {
     //
@@ -520,6 +631,16 @@ HttpBootStop (
     HttpUrlFreeParser (Private->FilePathUriParser);
     Private->FilePathUri       = NULL;
     Private->FilePathUriParser = NULL;
+  }
+
+  if (Private->LastModifiedOrEtag != NULL) {
+    FreePool (Private->LastModifiedOrEtag);
+    Private->LastModifiedOrEtag = NULL;
+  }
+
+  if (Private->ProxyUri != NULL) {
+    FreePool (Private->ProxyUri);
+    Private->ProxyUri = NULL;
   }
 
   ZeroMem (Private->OfferBuffer, sizeof (Private->OfferBuffer));
@@ -710,7 +831,8 @@ HttpBootCallback (
       if (Data != NULL) {
         HttpMessage = (EFI_HTTP_MESSAGE *)Data;
         if ((HttpMessage->Data.Request->Method == HttpMethodGet) &&
-            (HttpMessage->Data.Request->Url != NULL))
+            (HttpMessage->Data.Request->Url != NULL) &&
+            (Private->PartialTransferredSize == 0))
         {
           Print (L"\n  URI: %s\n", HttpMessage->Data.Request->Url);
         }
@@ -740,6 +862,16 @@ HttpBootCallback (
 
             break;
           }
+        }
+
+        // If download was resumed, do not change progress variables
+        HttpHeader = HttpFindHeader (
+                       HttpMessage->HeaderCount,
+                       HttpMessage->Headers,
+                       HTTP_HEADER_CONTENT_RANGE
+                       );
+        if (HttpHeader) {
+          break;
         }
 
         HttpHeader = HttpFindHeader (

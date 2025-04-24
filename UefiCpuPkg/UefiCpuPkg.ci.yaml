@@ -6,6 +6,9 @@
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 ##
 {
+    "PrEval": {
+        "DscPath": "UefiCpuPkg.dsc",
+    },
     "LicenseCheck": {
         "IgnoreFiles": []
     },
@@ -71,7 +74,7 @@
         "IgnoreGuidName": ["SecCore", "ResetVector"], # Expected duplication for gEfiFirmwareVolumeTopFileGuid
         "IgnoreGuidValue": [],
         "IgnoreFoldersAndFiles": [],
-        "IgnoreDuplicates": []
+        "IgnoreDuplicates": ["gEdkiiPeiMpServices2PpiGuid=gEfiPeiMpServices2PpiGuid"]
     },
     "LibraryClassCheck": {
         "IgnoreHeaderFile": []

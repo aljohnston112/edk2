@@ -1,6 +1,7 @@
 /** @file
   Header file for Terminal driver.
 
+Copyright (C) 2025 Advanced Micro Devices, Inc. All rights reserved.<BR>
 Copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
 Copyright (C) 2016 Silicon Graphics, Inc. All rights reserved.<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -162,6 +163,8 @@ typedef union {
 #define ROW_OFFSET                 2
 #define COLUMN_OFFSET              5
 #define FW_BACK_OFFSET             2
+#define RESIZE_ROW_OFFSET          4
+#define RESIZE_COLUMN_OFFSET       8
 
 typedef struct {
   UINT16    Unicode;
@@ -1216,8 +1219,8 @@ AnsiRawDataToUnicode (
 Putty function key map:
   +=========+======+===========+=============+=============+=============+=========+
   |         | EFI  |           |             |             |             |         |
-  |         | Scan |           |             |  Normal     |             |         |
-  |   KEY   | Code |  VT100+   | Xterm R6    |  VT400      | Linux       | SCO     |
+  |         | Scan |  VT100+   |             |  Normal     |             |         |
+  |   KEY   | Code |  VTUTF8   | Xterm R6    |  VT400      | Linux       | SCO     |
   +=========+======+===========+=============+=============+=============+=========+
   | F1      | 0x0B | ESC O P   | ESC O P     | ESC [ 1 1 ~ | ESC [ [ A   | ESC [ M |
   | F2      | 0x0C | ESC O Q   | ESC O Q     | ESC [ 1 2 ~ | ESC [ [ B   | ESC [ N |

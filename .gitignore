@@ -8,3 +8,5 @@ tags/
 ./.idea
 /FourthFingerPkg/compile_commands.json
 /FourthFingerPkg/make_output.txt
+.venv/
+

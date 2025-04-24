@@ -42,6 +42,9 @@ CryptoNidToOpensslNid (
     case CRYPTO_NID_SECP521R1:
       Nid = NID_secp521r1;
       break;
+    case CRYPTO_NID_BRAINPOOLP512R1:
+      Nid = NID_brainpoolP512r1;
+      break;
     default:
       return -1;
   }
@@ -585,6 +588,9 @@ EcGetPubKey (
     return FALSE;
   }
 
+  BnX = NULL;
+  BnY = NULL;
+
   EcKey    = (EC_KEY *)EcContext;
   Group    = EC_KEY_get0_group (EcKey);
   HalfSize = (EC_GROUP_get_degree (Group) + 7) / 8;
@@ -628,8 +634,14 @@ EcGetPubKey (
   RetVal = TRUE;
 
 fail:
-  BN_free (BnX);
-  BN_free (BnY);
+  if (BnX != NULL) {
+    BN_free (BnX);
+  }
+
+  if (BnY != NULL) {
+    BN_free (BnY);
+  }
+
   return RetVal;
 }
 
@@ -833,6 +845,9 @@ EcDsaSign (
     case NID_secp521r1:
       HalfSize = 66;
       break;
+    case NID_brainpoolP512r1:
+      HalfSize = 64;
+      break;
     default:
       return FALSE;
   }
@@ -960,6 +975,9 @@ EcDsaVerify (
       break;
     case NID_secp521r1:
       HalfSize = 66;
+      break;
+    case NID_brainpoolP512r1:
+      HalfSize = 64;
       break;
     default:
       return FALSE;

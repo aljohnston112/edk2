@@ -9,7 +9,7 @@
 
 #include <AArch64/AArch64.h>
 #include <Library/PcdLib.h>
-#include <AsmMacroIoLibV8.h>
+#include <AsmMacroLib.h>
 #include <Protocol/DebugSupport.h> // for exception type definitions
 
 /*
@@ -109,12 +109,7 @@ GCC_ASM_EXPORT(CommonCExceptionHandler)
 // exception vector initialization method is used.
 //
 
-#if defined(ARM_RELOCATE_VECTORS)
-GCC_ASM_EXPORT(ExceptionHandlersStart)
-ASM_PFX(ExceptionHandlersStart):
-#else
 VECTOR_BASE(ExceptionHandlersStart)
-#endif
 
   .macro  ExceptionEntry, val, sp=SPx
   //
@@ -168,13 +163,7 @@ VECTOR_BASE(ExceptionHandlersStart)
   mov       x0, #\val
 
   // Jump to our general handler to deal with all the common parts and process the exception.
-#if defined(ARM_RELOCATE_VECTORS)
-  ldr       x1, =ASM_PFX(CommonExceptionEntry)
-  br        x1
-  .ltorg
-#else
   b         ASM_PFX(CommonExceptionEntry)
-#endif
   .endm
 
 //

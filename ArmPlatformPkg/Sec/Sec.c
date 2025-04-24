@@ -139,6 +139,10 @@ PrintFirmwareVersion (
                 __TIME__,
                 __DATE__
                 );
+
+  // Because we are directly bit banging the serial port instead of going through the DebugLib, we need to make sure
+  // the serial port is initialized before we write to it
+  SerialPortInitialize ();
   SerialPortWrite ((UINT8 *)Buffer, CharCount);
 }
 
@@ -218,11 +222,6 @@ CEntryPoint (
   // 'Align=4K' is defined into your FDF for this module.
   ASSERT (((UINTN)PeiVectorTable & ARM_VECTOR_TABLE_ALIGNMENT) == 0);
   ArmWriteVBar ((UINTN)PeiVectorTable);
-
-  // Enable Floating Point
-  if (FixedPcdGet32 (PcdVFPEnabled)) {
-    ArmEnableVFP ();
-  }
 
   // Invoke "ProcessLibraryConstructorList" to have all library constructors
   // called.

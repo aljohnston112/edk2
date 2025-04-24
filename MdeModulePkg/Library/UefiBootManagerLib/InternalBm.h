@@ -18,6 +18,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <IndustryStandard/Atapi.h>
 #include <IndustryStandard/Scsi.h>
 #include <IndustryStandard/Nvme.h>
+#include <IndustryStandard/Sd.h>
+#include <IndustryStandard/Emmc.h>
 
 #include <Protocol/PciRootBridgeIo.h>
 #include <Protocol/BlockIo.h>
@@ -42,6 +44,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Protocol/RamDisk.h>
 #include <Protocol/DeferredImageLoad.h>
 #include <Protocol/PlatformBootManager.h>
+#include <Protocol/VariablePolicy.h>
 
 #include <Guid/MemoryTypeInformation.h>
 #include <Guid/FileInfo.h>
@@ -69,6 +72,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/CapsuleLib.h>
 #include <Library/PerformanceLib.h>
 #include <Library/HiiLib.h>
+#include <Library/VariablePolicyHelperLib.h>
 
 #if !defined (EFI_REMOVABLE_MEDIA_FILE_NAME)
   #if defined (MDE_CPU_EBC)
