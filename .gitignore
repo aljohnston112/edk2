@@ -5,8 +5,8 @@ Build/
 __pycache__/
 tags/
 .vscode/
-./.idea
-/FourthFingerPkg/compile_commands.json
-/FourthFingerPkg/make_output.txt
+*/.idea
+FourthFingerPkg/compile_commands.json
+FourthFingerPkg/make_output.txt
 .venv/
 
